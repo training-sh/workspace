@@ -1,0 +1,28 @@
+validations/.ops/
+*.local.env
+*.dump
+__pycache__/
+backups/
+.state/
+image/downloads/
+.training-workspace
+**/.ipynb_checkpoints/
+!polaris/catalog.json
+
+# Local environments, credentials and generated lesson results
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.log
+**/results.json
+**/formats-results.json
+**/*-results.json
+pyspark/streaming/state.json
+
+# Validation-only DAG installed on demand
+airflow/dags/training_smoke.py
+validations/results/

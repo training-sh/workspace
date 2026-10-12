@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: bigdata
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: bigdata-prometheus
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - nodes/proxy
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bigdata-prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: bigdata-prometheus
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: bigdata
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: bigdata
+data:
+  prometheus.yml: "global:\n  scrape_interval: 15s\n  evaluation_interval: 15s\nscrape_configs:\n\
+    - job_name: prometheus\n  static_configs:\n  - targets:\n    - localhost:9090\n\
+    - job_name: grafana\n  static_configs:\n  - targets:\n    - grafana:3000\n- job_name:\
+    \ jaeger\n  static_configs:\n  - targets:\n    - jaeger:8888\n- job_name: kubernetes-cadvisor\n\
+    \  scheme: https\n  authorization:\n    credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token\n\
+    \  tls_config:\n    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n\
+    \  kubernetes_sd_configs:\n  - role: node\n  relabel_configs:\n  - source_labels:\n\
+    \    - __meta_kubernetes_node_name\n    target_label: node\n  - target_label:\
+    \ __address__\n    replacement: kubernetes.default.svc:443\n  - source_labels:\n\
+    \    - __meta_kubernetes_node_name\n    target_label: __metrics_path__\n    replacement:\
+    \ /api/v1/nodes/$1/proxy/metrics/cadvisor\n- job_name: loki\n  metrics_path: /metrics\n\
+    \  static_configs:\n  - targets:\n    - loki:3100\n- job_name: alloy\n  metrics_path:\
+    \ /metrics\n  static_configs:\n  - targets:\n    - alloy:12345\n- job_name: hdfs-namenode\n\
+    \  metrics_path: /prom\n  static_configs:\n  - targets:\n    - namenode:9870\n\
+    \  metric_relabel_configs:\n  - action: labeldrop\n    regex: totalsynctimes|transactionssincelastcheckpoint|lastcheckpointtime\n\
+    - job_name: hdfs-datanode\n  metrics_path: /prom\n  static_configs:\n  - targets:\n\
+    \    - datanode:9864\n  metric_relabel_configs:\n  - action: labeldrop\n    regex:\
+    \ totalsynctimes|transactionssincelastcheckpoint|lastcheckpointtime\n- job_name:\
+    \ spark-master\n  metrics_path: /metrics/prometheus\n  static_configs:\n  - targets:\n\
+    \    - spark-master:8080\n- job_name: spark-worker\n  metrics_path: /metrics/prometheus\n\
+    \  static_configs:\n  - targets:\n    - spark-worker:8081\n- job_name: resourcemanager-jmx\n\
+    \  metrics_path: /metrics\n  static_configs:\n  - targets:\n    - resourcemanager:9404\n\
+    - job_name: nodemanager-jmx\n  metrics_path: /metrics\n  static_configs:\n  -\
+    \ targets:\n    - nodemanager:9404\n- job_name: historyserver-jmx\n  metrics_path:\
+    \ /metrics\n  static_configs:\n  - targets:\n    - historyserver:9404\n- job_name:\
+    \ hive-metastore-jmx\n  metrics_path: /metrics\n  static_configs:\n  - targets:\n\
+    \    - hive-metastore:9404\n- job_name: hiveserver2-jmx\n  metrics_path: /metrics\n\
+    \  static_configs:\n  - targets:\n    - hiveserver2:9404\n- job_name: kafka-jmx\n\
+    \  metrics_path: /metrics\n  static_configs:\n  - targets:\n    - kafka:9404\n\
+    - job_name: zookeeper-native\n  metrics_path: /metrics\n  static_configs:\n  -\
+    \ targets:\n    - zookeeper:7000\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: bigdata
+spec:
+  selector:
+    app: prometheus
+  ports:
+  - name: http
+    port: 9090
+    targetPort: 9090
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus
+  namespace: bigdata
+spec:
+  serviceName: prometheus
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      securityContext:
+        fsGroup: 65534
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v3.13.4@sha256:87861b8cf91579109319ebc300f3f1060e6da9c05d6ae8ad15a20c879e84e32e
+        ports:
+        - containerPort: 9090
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: data
+          mountPath: /prometheus
+        - name: config
+          mountPath: /etc/prometheus
+        args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/prometheus
+        - --storage.tsdb.retention.time=7d
+        - --storage.tsdb.retention.size=3GB
+        readinessProbe:
+          httpGet: &id001
+            path: /-/ready
+            port: 9090
+          periodSeconds: 10
+          timeoutSeconds: 5
+        startupProbe:
+          httpGet: *id001
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 60
+        livenessProbe:
+          httpGet: *id001
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+      volumes:
+      - name: config
+        configMap:
+          name: prometheus-config
+      serviceAccountName: prometheus
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi

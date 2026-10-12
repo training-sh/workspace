@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: training-telemetry
+  namespace: bigdata
+data:
+  bootstrap.sh: "#!/usr/bin/env bash\nset -euo pipefail\nsource /opt/training/env.sh\n\
+    mkdir -p /tmp/hadoop-logs /tmp/hive-logs /tmp/hive-local\npython /opt/training/render.py\n\
+    python - <<'PY'\nimport xml.etree.ElementTree as ET\np='/opt/training/conf/hadoop/core-site.xml'\n\
+    t=ET.parse(p);v=ET.SubElement(t.getroot(),'property');ET.SubElement(v,'name').text='hadoop.prometheus.endpoint.enabled';ET.SubElement(v,'value').text='true';t.write(p,encoding='unicode')\n\
+    p='/opt/training/conf/hadoop/hdfs-site.xml'\nt=ET.parse(p);v=ET.SubElement(t.getroot(),'property');ET.SubElement(v,'name').text='dfs.namenode.datanode.registration.ip-hostname-check';ET.SubElement(v,'value').text='false';t.write(p,encoding='unicode')\n\
+    PY\ncp /etc/training-telemetry/metrics.properties \"$SPARK_CONF_DIR/metrics.properties\"\
+    \nprintf '\\nspark.ui.prometheus.enabled true\\nspark.eventLog.dir hdfs://namenode:9000/spark-history\\\
+    n' >> \"$SPARK_CONF_DIR/spark-defaults.conf\"\ncp /etc/training-telemetry/log4j2.properties\
+    \ \"$SPARK_CONF_DIR/log4j2.properties\"\nmkdir -p /tmp/spark-logs\nrole=$1; shift\n\
+    case \"$role\" in\n namenode)\n  mkdir -p /data/namenode\n  if [[ ! -f /data/namenode/current/VERSION\
+    \ ]]; then\n   [[ -z \"$(ls -A /data/namenode)\" ]] || { echo 'Refusing to format\
+    \ a nonempty NameNode directory'; exit 1; }\n   hdfs namenode -format -nonInteractive\n\
+    \  fi\n  exec hdfs namenode \"$@\" ;;\n datanode) mkdir -p /data/datanode; exec\
+    \ hdfs datanode \"$@\" ;;\n spark-master) exec /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master\
+    \ --host \"${POD_IP:-$(hostname -i)}\" --port 7077 --webui-port 8080 \"$@\" ;;\n\
+    \ spark-worker) mkdir -p \"$SPARK_WORKER_DIR\"; exec /opt/spark/bin/spark-class\
+    \ org.apache.spark.deploy.worker.Worker --cores 1 --memory 1g spark://spark-master:7077\
+    \ \"$@\" ;;\n jupyter) : \"${JUPYTER_TOKEN:?Set JUPYTER_TOKEN}\"; exec jupyter\
+    \ lab --config=/opt/training/jupyter_config.py \"$@\" ;;\n *) echo 'Unsupported\
+    \ telemetry bootstrap role'; exit 2 ;;\nesac\n"
+  file-logs.py: "\"\"\"Forward selected shared-volume text logs to stdout; rediscover\
+    \ new executor files.\"\"\"\nimport glob,json,os,time\nfrom pathlib import Path\n\
+    state=Path('/positions/offsets.json')\ntry: offsets=json.loads(state.read_text())\n\
+    except (FileNotFoundError,json.JSONDecodeError): offsets={}\nwhile True:\n for\
+    \ pattern in os.environ['LOG_PATTERNS'].split(';'):\n  for name in glob.glob(pattern,recursive=True):\n\
+    \   try:\n    stat=os.stat(name); old=offsets.get(name,[stat.st_ino,0]); offset=old[1]\
+    \ if old[0]==stat.st_ino and old[1]<=stat.st_size else 0\n    with open(name,encoding='utf-8',errors='replace')\
+    \ as stream:\n     stream.seek(offset)\n     for _ in range(1000):\n      line=stream.readline()\n\
+    \      if not line: break\n      print(json.dumps({'message':line.rstrip(),'source_file':name}),flush=True)\n\
+    \     offsets[name]=[stat.st_ino,stream.tell()]\n   except (FileNotFoundError,PermissionError):\
+    \ pass\n state.with_suffix('.tmp').write_text(json.dumps(offsets));state.with_suffix('.tmp').replace(state)\n\
+    \ time.sleep(2)\n"
+  metrics.properties: '*.sink.prometheusServlet.class=org.apache.spark.metrics.sink.PrometheusServlet
+
+    *.sink.prometheusServlet.path=/metrics/prometheus
+
+    *.sink.servlet.class=org.apache.spark.metrics.sink.MetricsServlet
+
+    *.sink.servlet.path=/metrics/json
+
+    '
+  log4j2.properties: 'status = warn
+
+    name = TrainingSparkLogs
+
+    appender.console.type = Console
+
+    appender.console.name = console
+
+    appender.console.target = SYSTEM_ERR
+
+    appender.console.layout.type = PatternLayout
+
+    appender.console.layout.pattern = %d{ISO8601} %-5p %c{1}: %m%n%ex
+
+    appender.file.type = RollingFile
+
+    appender.file.name = file
+
+    appender.file.fileName = /tmp/spark-logs/spark.log
+
+    appender.file.filePattern = /tmp/spark-logs/spark-%i.log.gz
+
+    appender.file.layout.type = PatternLayout
+
+    appender.file.layout.pattern = %d{ISO8601} %-5p %c{1}: %m%n%ex
+
+    appender.file.policies.type = Policies
+
+    appender.file.policies.size.type = SizeBasedTriggeringPolicy
+
+    appender.file.policies.size.size = 10MB
+
+    appender.file.strategy.type = DefaultRolloverStrategy
+
+    appender.file.strategy.max = 3
+
+    rootLogger.level = info
+
+    rootLogger.appenderRef.console.ref = console
+
+    rootLogger.appenderRef.file.ref = file
+
+    '
+  jmx-exporter.yaml: 'startDelaySeconds: 5
+
+    lowercaseOutputName: true
+
+    lowercaseOutputLabelNames: true
+
+    '

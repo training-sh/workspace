@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy
+  namespace: bigdata
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: alloy
+  namespace: bigdata
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - pods/log
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: alloy
+  namespace: bigdata
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: alloy
+subjects:
+- kind: ServiceAccount
+  name: alloy
+  namespace: bigdata
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: bigdata
+data:
+  config.alloy: "discovery.kubernetes \"pods\" {\n  role = \"pod\"\n  namespaces {\
+    \ names = [\"bigdata\", \"headlamp\"] }\n}\ndiscovery.relabel \"logs\" {\n  targets\
+    \ = discovery.kubernetes.pods.targets\n  rule { source_labels = [\"__meta_kubernetes_namespace\"\
+    ]\n    target_label = \"namespace\" }\n  rule { source_labels = [\"__meta_kubernetes_pod_name\"\
+    ]\n    target_label = \"pod\" }\n  rule { source_labels = [\"__meta_kubernetes_pod_container_name\"\
+    ]\n    target_label = \"container\" }\n  rule { source_labels = [\"__meta_kubernetes_pod_label_app\"\
+    ]\n    target_label = \"component\" }\n  rule { source_labels = [\"__meta_kubernetes_pod_label_app\"\
+    , \"__meta_kubernetes_pod_label_app_kubernetes_io_name\"]\n    regex = \";(.+)\"\
+    \n    replacement = \"$1\"\n    target_label = \"component\" }\n  rule { target_label\
+    \ = \"cluster\"\n    replacement = \"training\" }\n  rule { target_label = \"\
+    job\"\n    replacement = \"kubernetes-pods\" }\n}\nloki.source.kubernetes \"pods\"\
+    \ {\n  targets = discovery.relabel.logs.output\n  forward_to = [loki.write.local.receiver]\n\
+    }\nloki.write \"local\" {\n  endpoint { url = \"http://loki:3100/loki/api/v1/push\"\
+    \ }\n}\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy
+  namespace: bigdata
+spec:
+  selector:
+    app: alloy
+  ports:
+  - name: http
+    port: 12345
+    targetPort: 12345
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: alloy
+  namespace: bigdata
+spec:
+  serviceName: alloy
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alloy
+  template:
+    metadata:
+      labels:
+        app: alloy
+    spec:
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+      - name: alloy
+        image: grafana/alloy:v1.20.1@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f
+        args:
+        - run
+        - --server.http.listen-addr=0.0.0.0:12345
+        - --storage.path=/var/lib/alloy
+        - --disable-reporting
+        - /etc/alloy/config.alloy
+        env:
+        - name: GOMEMLIMIT
+          value: 192MiB
+        ports:
+        - containerPort: 12345
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 256Mi
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/alloy
+        - name: config
+          mountPath: /etc/alloy
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: 12345
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /-/ready
+            port: 12345
+          periodSeconds: 5
+          failureThreshold: 60
+      volumes:
+      - name: config
+        configMap:
+          name: alloy-config
+      serviceAccountName: alloy
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: alloy
+  namespace: headlamp
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - pods/log
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: alloy
+  namespace: headlamp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: alloy
+subjects:
+- kind: ServiceAccount
+  name: alloy
+  namespace: bigdata

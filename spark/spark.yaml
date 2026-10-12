@@ -1,0 +1,191 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+  namespace: bigdata
+spec:
+  selector:
+    app: spark-master
+  ports:
+  - name: p8080
+    port: 8080
+    targetPort: 8080
+  - name: p7077
+    port: 7077
+    targetPort: 7077
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spark-master
+  namespace: bigdata
+spec:
+  serviceName: spark-master
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-master
+  template:
+    metadata:
+      labels:
+        app: spark-master
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: spark-master
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - spark-master
+        - --host
+        - $(POD_IP)
+        ports:
+        - containerPort: 8080
+        - containerPort: 7077
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 768Mi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 8080
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          tcpSocket: *id001
+          periodSeconds: 10
+        command:
+        - /usr/bin/tini
+        - -g
+        - --
+        - /bin/bash
+        - /etc/training-telemetry/bootstrap.sh
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      enableServiceLinks: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-worker
+  namespace: bigdata
+spec:
+  selector:
+    app: spark-worker
+  ports:
+  - name: p8081
+    port: 8081
+    targetPort: 8081
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spark-worker
+  namespace: bigdata
+spec:
+  serviceName: spark-worker
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-worker
+  template:
+    metadata:
+      labels:
+        app: spark-worker
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: spark-worker
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - spark-worker
+        ports:
+        - containerPort: 8081
+        env: []
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1280Mi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 8081
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          tcpSocket: *id001
+          periodSeconds: 10
+        command:
+        - /usr/bin/tini
+        - -g
+        - --
+        - /bin/bash
+        - /etc/training-telemetry/bootstrap.sh
+      - name: file-logs
+        image: dataeng-training:1.2.0
+        command:
+        - /opt/venv/bin/python
+        - /etc/training-telemetry/file-logs.py
+        env:
+        - name: LOG_PATTERNS
+          value: /logs/spark-work/**/stdout;/logs/spark-work/**/stderr
+        resources:
+          requests:
+            cpu: 5m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: data
+          mountPath: /logs
+          readOnly: true
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        - name: log-positions
+          mountPath: /positions
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      - name: log-positions
+        emptyDir: {}
+      enableServiceLinks: false

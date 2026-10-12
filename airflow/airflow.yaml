@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: airflow-credentials
+  namespace: bigdata
+type: Opaque
+stringData:
+  passwords.json: '{"team":"team1234"}'
+  sql-connection: postgresql+psycopg2://team:team1234@postgres:5432/airflow_metadata
+  jwt-secret: training-airflow-jwt-key-change-for-production-2026
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow
+  namespace: bigdata
+spec:
+  selector:
+    app: airflow
+  ports:
+  - name: p8080
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: airflow
+  namespace: bigdata
+spec:
+  serviceName: airflow
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow
+  template:
+    metadata:
+      labels:
+        app: airflow
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: airflow
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - airflow
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+          valueFrom:
+            secretKeyRef:
+              name: airflow-credentials
+              key: sql-connection
+        - name: AIRFLOW__CORE__EXECUTOR
+          value: LocalExecutor
+        - name: AIRFLOW__CORE__PARALLELISM
+          value: '2'
+        - name: AIRFLOW__CORE__LOAD_EXAMPLES
+          value: 'false'
+        - name: AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS
+          value: team:admin
+        - name: AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE
+          value: /opt/airflow/auth/passwords.json
+        - name: AIRFLOW__API_AUTH__JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: airflow-credentials
+              key: jwt-secret
+        - name: AIRFLOW__CORE__EXECUTION_API_SERVER_URL
+          value: http://airflow:8080/execution/
+        - name: AIRFLOW__API__BASE_URL
+          value: http://airflow:8080
+        - name: AIRFLOW__API__WORKERS
+          value: '1'
+        - name: AIRFLOW__DAG_PROCESSOR__PARSING_PROCESSES
+          value: '1'
+        resources:
+          requests:
+            cpu: 50m
+            memory: 768Mi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: data
+          mountPath: /opt/airflow
+        - name: auth
+          mountPath: /opt/training/auth
+          readOnly: true
+        - name: workspace
+          mountPath: /opt/airflow/dags
+          subPath: airflow/dags
+        - name: workspace
+          mountPath: /workspace
+        startupProbe:
+          httpGet: &id001
+            path: /api/v2/monitor/health
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 90
+        readinessProbe:
+          httpGet: *id001
+          periodSeconds: 10
+          timeoutSeconds: 5
+      - name: file-logs
+        image: dataeng-training:1.2.0
+        command:
+        - /opt/venv/bin/python
+        - /etc/training-telemetry/file-logs.py
+        env:
+        - name: LOG_PATTERNS
+          value: /logs/logs/**/*.log
+        resources:
+          requests:
+            cpu: 5m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: data
+          mountPath: /logs
+          readOnly: true
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        - name: log-positions
+          mountPath: /positions
+      volumes:
+      - name: auth
+        secret:
+          secretName: airflow-credentials
+      - name: workspace
+        hostPath:
+          path: /course-workspace
+          type: Directory
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      - name: log-positions
+        emptyDir: {}
+      initContainers:
+      - name: prepare-auth
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - exec
+        - bash
+        - -ec
+        - mkdir -p /data/auth; cp /seed/passwords.json /data/auth/passwords.json;
+          chmod 600 /data/auth/passwords.json
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: auth
+          mountPath: /seed
+          readOnly: true
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+      enableServiceLinks: false
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi

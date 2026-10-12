@@ -1,0 +1,236 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trino-catalogs
+  namespace: bigdata
+data:
+  bootstrap.sh: '#!/usr/bin/env bash
+
+    set -euo pipefail
+
+    source /opt/training/env.sh
+
+    python /opt/training/render.py
+
+    cp /etc/trino-catalog/*.properties /opt/training/conf/trino/catalog/
+
+    export JAVA_HOME=/opt/java/trino
+
+    export PATH="$JAVA_HOME/bin:$PATH"
+
+    exec /opt/trino/bin/launcher --etc-dir=/opt/training/conf/trino run
+
+    '
+  mysql.properties: 'connector.name=mysql
+
+    connection-url=jdbc:mysql://mysql:3306
+
+    connection-user=team
+
+    connection-password=${ENV:DB_PASSWORD}
+
+    '
+  postgresql.properties: 'connector.name=postgresql
+
+    connection-url=jdbc:postgresql://postgres:5432/training_person
+
+    connection-user=team
+
+    connection-password=${ENV:DB_PASSWORD}
+
+    '
+  hive.properties: 'connector.name=hive
+
+    hive.metastore.uri=thrift://hive-metastore:9083
+
+    hive.metastore.username=team
+
+    fs.hadoop.enabled=true
+
+    hive.config.resources=/opt/training/conf/hadoop/core-site.xml,/opt/training/conf/hadoop/hdfs-site.xml
+
+    hive.hdfs.authentication.type=NONE
+
+    hive.hdfs.impersonation.enabled=false
+
+    hive.non-managed-table-writes-enabled=true
+
+    hive.non-managed-table-creates-enabled=true
+
+    hive.iceberg-catalog-name=iceberg_hive
+
+    '
+  iceberg_hive.properties: 'connector.name=iceberg
+
+    iceberg.catalog.type=hive_metastore
+
+    hive.metastore.uri=thrift://hive-metastore:9083
+
+    hive.metastore.username=team
+
+    fs.hadoop.enabled=true
+
+    hive.config.resources=/opt/training/conf/hadoop/core-site.xml,/opt/training/conf/hadoop/hdfs-site.xml
+
+    hive.hdfs.authentication.type=NONE
+
+    hive.hdfs.impersonation.enabled=false
+
+    fs.native-s3.enabled=true
+
+    s3.endpoint=http://seaweedfs:8333
+
+    s3.path-style-access=true
+
+    s3.region=us-east-1
+
+    s3.aws-access-key=${ENV:AWS_ACCESS_KEY_ID}
+
+    s3.aws-secret-key=${ENV:AWS_SECRET_ACCESS_KEY}
+
+    '
+  polaris.properties: 'connector.name=iceberg
+
+    iceberg.catalog.type=rest
+
+    iceberg.rest-catalog.uri=http://polaris:8181/api/catalog
+
+    iceberg.rest-catalog.warehouse=training
+
+    iceberg.rest-catalog.security=OAUTH2
+
+    iceberg.rest-catalog.oauth2.credential=${ENV:POLARIS_CLIENT_ID}:${ENV:POLARIS_CLIENT_SECRET}
+
+    iceberg.rest-catalog.oauth2.scope=PRINCIPAL_ROLE:ALL
+
+    iceberg.rest-catalog.oauth2.server-uri=http://polaris:8181/api/catalog/v1/oauth/tokens
+
+    iceberg.rest-catalog.vended-credentials-enabled=false
+
+    fs.native-s3.enabled=true
+
+    s3.endpoint=http://seaweedfs:8333
+
+    s3.path-style-access=true
+
+    s3.region=us-east-1
+
+    s3.aws-access-key=${ENV:AWS_ACCESS_KEY_ID}
+
+    s3.aws-secret-key=${ENV:AWS_SECRET_ACCESS_KEY}
+
+    '
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trino
+  namespace: bigdata
+spec:
+  selector:
+    app: trino
+  ports:
+  - name: p8080
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: trino
+  namespace: bigdata
+spec:
+  serviceName: trino
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trino
+  template:
+    metadata:
+      labels:
+        app: trino
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: trino
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: POLARIS_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: polaris-client-id
+        - name: POLARIS_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: polaris-client-secret
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: s3-access-key
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: s3-secret-key
+        - name: HADOOP_USER_NAME
+          value: team
+        - name: DB_PASSWORD
+          value: team1234
+        resources:
+          requests:
+            cpu: 50m
+            memory: 512Mi
+          limits:
+            cpu: '2'
+            memory: 1536Mi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: catalogs
+          mountPath: /etc/trino-catalog
+        startupProbe:
+          httpGet:
+            path: /v1/info
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 90
+        readinessProbe:
+          exec:
+            command:
+            - bash
+            - -ec
+            - curl -fsS http://127.0.0.1:8080/v1/info | python3 -c 'import json,sys;
+              sys.exit(bool(json.load(sys.stdin)["starting"]))'
+          periodSeconds: 5
+          timeoutSeconds: 5
+        command:
+        - /usr/bin/tini
+        - -g
+        - --
+        - /bin/bash
+        - /etc/trino-catalog/bootstrap.sh
+      volumes:
+      - name: catalogs
+        configMap:
+          name: trino-catalogs
+      enableServiceLinks: false
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi

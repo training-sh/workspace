@@ -1,0 +1,18 @@
+{
+  "catalog": {
+    "name": "training",
+    "type": "INTERNAL",
+    "properties": {
+      "default-base-location": "s3://warehouse/iceberg"
+    },
+    "storageConfigInfo": {
+      "storageType": "S3",
+      "allowedLocations": ["s3://warehouse/iceberg"],
+      "region": "us-east-1",
+      "endpoint": "http://seaweedfs.bigdata.svc.cluster.local:8333",
+      "endpointInternal": "http://seaweedfs.bigdata.svc.cluster.local:8333",
+      "pathStyleAccess": true,
+      "stsUnavailable": true
+    }
+  }
+}

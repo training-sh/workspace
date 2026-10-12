@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: namenode
+  namespace: bigdata
+spec:
+  selector:
+    app: namenode
+  ports:
+  - name: p9870
+    port: 9870
+    targetPort: 9870
+  - name: p9000
+    port: 9000
+    targetPort: 9000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: namenode
+  namespace: bigdata
+spec:
+  serviceName: namenode
+  replicas: 1
+  selector:
+    matchLabels:
+      app: namenode
+  template:
+    metadata:
+      labels:
+        app: namenode
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: namenode
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - namenode
+        ports:
+        - containerPort: 9870
+        - containerPort: 9000
+        env: []
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 768Mi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 9870
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          tcpSocket: *id001
+          periodSeconds: 10
+        command:
+        - /usr/bin/tini
+        - -g
+        - --
+        - /bin/bash
+        - /etc/training-telemetry/bootstrap.sh
+      volumes:
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      enableServiceLinks: false
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: datanode
+  namespace: bigdata
+spec:
+  selector:
+    app: datanode
+  ports:
+  - name: p9864
+    port: 9864
+    targetPort: 9864
+  - name: p9866
+    port: 9866
+    targetPort: 9866
+  - name: p9867
+    port: 9867
+    targetPort: 9867
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: datanode
+  namespace: bigdata
+spec:
+  serviceName: datanode
+  replicas: 1
+  selector:
+    matchLabels:
+      app: datanode
+  template:
+    metadata:
+      labels:
+        app: datanode
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: datanode
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - datanode
+        ports:
+        - containerPort: 9864
+        - containerPort: 9866
+        - containerPort: 9867
+        env:
+        - name: DATANODE_HOST
+          value: datanode.bigdata.svc.cluster.local
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 768Mi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 9864
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          tcpSocket: *id001
+          periodSeconds: 10
+        command:
+        - /usr/bin/tini
+        - -g
+        - --
+        - /bin/bash
+        - /etc/training-telemetry/bootstrap.sh
+      volumes:
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      enableServiceLinks: false
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+<title id="title">Monitoring and persistent storage</title><desc id="desc">Start monitoring before applications; distinguish source files from cluster data.</desc>
+<rect width="1200" height="720" fill="#f8fafc"/>
+<text x="50" y="47.3" fill="#2563eb" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start">KUBERNETES / VISUAL GUIDE</text>
+<text x="50" y="92.88" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="34" font-weight="700" text-anchor="start">Monitoring and persistent storage</text>
+<text x="50" y="131.57999999999998" fill="#526581" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="400" text-anchor="start">Start monitoring before applications; distinguish source files from cluster data.</text>
+<rect x="50" y="175" width="300" height="110" rx="16" fill="#e9f7f0" stroke="#087f5b" stroke-width="2"/>
+<text x="68" y="210.04" fill="#087f5b" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Application Pods</text>
+<text x="68" y="241.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Container stdout / stderr</text>
+<text x="68" y="269.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Selected file-log sidecars</text>
+<rect x="450" y="175" width="300" height="110" rx="16" fill="#edf4ff" stroke="#2563eb" stroke-width="2"/>
+<text x="468" y="210.04" fill="#2563eb" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Alloy -&gt; Loki</text>
+<text x="468" y="241.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Collect and store logs</text>
+<text x="468" y="269.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Query logs through Grafana</text>
+<polyline points="350,220 450,220" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="450.0,220.0 440.2,225.1 440.2,214.9" fill="#2563eb"/>
+<rect x="850" y="175" width="300" height="110" rx="16" fill="#edf4ff" stroke="#2563eb" stroke-width="2"/>
+<text x="868" y="210.04" fill="#2563eb" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Grafana</text>
+<text x="868" y="241.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Log and performance views</text>
+<text x="868" y="269.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Reads Loki and Prometheus</text>
+<polyline points="750,220 850,220" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="850.0,220.0 840.2,225.1 840.2,214.9" fill="#2563eb"/>
+<rect x="50" y="335" width="300" height="110" rx="16" fill="#e9f7f0" stroke="#087f5b" stroke-width="2"/>
+<text x="68" y="370.04" fill="#087f5b" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Metrics endpoints</text>
+<text x="68" y="401.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Native / JMX / kubelet</text>
+<text x="68" y="429.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">CPU, memory, service metrics</text>
+<rect x="450" y="335" width="300" height="110" rx="16" fill="#edf4ff" stroke="#2563eb" stroke-width="2"/>
+<text x="468" y="370.04" fill="#2563eb" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Prometheus</text>
+<text x="468" y="401.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Scrapes configured targets</text>
+<text x="468" y="429.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Stores time-series metrics</text>
+<polyline points="350,380 450,380" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="450.0,380.0 440.2,385.1 440.2,374.9" fill="#2563eb"/>
+<polyline points="750,380 800,380 800,250 850,250" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="850.0,250.0 840.2,255.1 840.2,244.9" fill="#2563eb"/>
+<rect x="850" y="335" width="300" height="110" rx="16" fill="#edf4ff" stroke="#2563eb" stroke-width="2"/>
+<text x="868" y="370.04" fill="#2563eb" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Jaeger</text>
+<text x="868" y="401.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Receives instrumented traces</text>
+<text x="868" y="429.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Not automatic app tracing</text>
+<rect x="50" y="505" width="510" height="112" rx="16" fill="#fff6e7" stroke="#ad6200" stroke-width="2"/>
+<text x="68" y="540.04" fill="#ad6200" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Host source files</text>
+<text x="68" y="572.76" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="400" text-anchor="start">Chosen workspace -&gt; node /course-workspace</text>
+<text x="68" y="600.76" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="400" text-anchor="start">Jupyter /workspace; retained outside cluster</text>
+<rect x="600" y="505" width="550" height="112" rx="16" fill="#fff6e7" stroke="#ad6200" stroke-width="2"/>
+<text x="618" y="540.04" fill="#ad6200" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">PVCs -&gt; local PVs -&gt; node storage</text>
+<text x="618" y="572.76" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="400" text-anchor="start">Database, HDFS, Kafka and monitoring data</text>
+<text x="618" y="600.76" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="400" text-anchor="start">Docker volume bigdata; profile deletion loses data</text>
+<rect x="50" y="659" width="1100" height="42" rx="10" fill="#eaf0f7" stroke="#eaf0f7" stroke-width="2"/>
+<text x="70" y="682.94" fill="#526581" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Headlamp views Kubernetes resources. metrics-server supplies current usage, not historical monitoring.</text>
+</svg>

@@ -1,0 +1,293 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: resourcemanager
+  namespace: bigdata
+spec:
+  selector:
+    app: resourcemanager
+  ports:
+  - name: p8088
+    port: 8088
+    targetPort: 8088
+  - name: p8030
+    port: 8030
+    targetPort: 8030
+  - name: p8031
+    port: 8031
+    targetPort: 8031
+  - name: p8032
+    port: 8032
+    targetPort: 8032
+  - name: p8033
+    port: 8033
+    targetPort: 8033
+  - name: metrics
+    port: 9404
+    targetPort: 9404
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: resourcemanager
+  namespace: bigdata
+spec:
+  serviceName: resourcemanager
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resourcemanager
+  template:
+    metadata:
+      labels:
+        app: resourcemanager
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: resourcemanager
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - resourcemanager
+        ports:
+        - containerPort: 8088
+        - containerPort: 8030
+        - containerPort: 8031
+        - containerPort: 8032
+        - containerPort: 8033
+        - name: metrics
+          containerPort: 9404
+        env:
+        - name: TRAINING_JMX_METRICS
+          value: 'true'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 768Mi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 8088
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          tcpSocket: *id001
+          periodSeconds: 10
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      enableServiceLinks: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodemanager
+  namespace: bigdata
+spec:
+  selector:
+    app: nodemanager
+  ports:
+  - name: p8042
+    port: 8042
+    targetPort: 8042
+  - name: metrics
+    port: 9404
+    targetPort: 9404
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nodemanager
+  namespace: bigdata
+spec:
+  serviceName: nodemanager
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodemanager
+  template:
+    metadata:
+      labels:
+        app: nodemanager
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: nodemanager
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - nodemanager
+        ports:
+        - containerPort: 8042
+        - name: metrics
+          containerPort: 9404
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: TRAINING_JMX_METRICS
+          value: 'true'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 2560Mi
+          limits:
+            cpu: '2'
+            memory: 3Gi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 8042
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          tcpSocket: *id001
+          periodSeconds: 10
+      - name: file-logs
+        image: dataeng-training:1.2.0
+        command:
+        - /opt/venv/bin/python
+        - /etc/training-telemetry/file-logs.py
+        env:
+        - name: LOG_PATTERNS
+          value: /logs/yarn/log/**/stdout;/logs/yarn/log/**/stderr;/logs/yarn/log/**/syslog
+        resources:
+          requests:
+            cpu: 5m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: data
+          mountPath: /logs
+          readOnly: true
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        - name: log-positions
+          mountPath: /positions
+      volumes:
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      - name: log-positions
+        emptyDir: {}
+      enableServiceLinks: false
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: historyserver
+  namespace: bigdata
+spec:
+  selector:
+    app: historyserver
+  ports:
+  - name: p19888
+    port: 19888
+    targetPort: 19888
+  - name: p10020
+    port: 10020
+    targetPort: 10020
+  - name: metrics
+    port: 9404
+    targetPort: 9404
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: historyserver
+  namespace: bigdata
+spec:
+  serviceName: historyserver
+  replicas: 1
+  selector:
+    matchLabels:
+      app: historyserver
+  template:
+    metadata:
+      labels:
+        app: historyserver
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: historyserver
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - historyserver
+        ports:
+        - containerPort: 19888
+        - containerPort: 10020
+        - name: metrics
+          containerPort: 9404
+        env:
+        - name: TRAINING_JMX_METRICS
+          value: 'true'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 512Mi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 19888
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          tcpSocket: *id001
+          periodSeconds: 10
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      enableServiceLinks: false

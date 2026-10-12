@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+<title id="title">How applications use data and metadata</title><desc id="desc">Arrows show selected relationships; they do not imply a job is currently running.</desc>
+<rect width="1200" height="720" fill="#f8fafc"/>
+<text x="50" y="47.3" fill="#2563eb" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start">KUBERNETES / VISUAL GUIDE</text>
+<text x="50" y="92.88" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="34" font-weight="700" text-anchor="start">How applications use data and metadata</text>
+<text x="50" y="131.57999999999998" fill="#526581" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="400" text-anchor="start">Arrows show selected relationships; they do not imply a job is currently running.</text>
+<rect x="50" y="175" width="310" height="110" rx="16" fill="#edf4ff" stroke="#2563eb" stroke-width="2"/>
+<text x="68" y="209.22" fill="#2563eb" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="21" font-weight="700" text-anchor="start">Jupyter / Python / PySpark</text>
+<text x="68" y="241.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Interactive code and Spark driver</text>
+<text x="68" y="269.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Source checkout at /workspace</text>
+<rect x="440" y="175" width="310" height="110" rx="16" fill="#e9f7f0" stroke="#087f5b" stroke-width="2"/>
+<text x="458" y="210.04" fill="#087f5b" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Spark master + worker</text>
+<text x="458" y="241.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Standalone Spark execution</text>
+<text x="458" y="269.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Distributed tasks on worker</text>
+<polyline points="360,220 440,220" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="440.0,220.0 430.2,225.1 430.2,214.9" fill="#2563eb"/>
+<rect x="840" y="175" width="310" height="110" rx="16" fill="#e9f7f0" stroke="#087f5b" stroke-width="2"/>
+<text x="858" y="210.04" fill="#087f5b" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Kafka + ZooKeeper</text>
+<text x="858" y="241.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Events stored in Kafka</text>
+<text x="858" y="269.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">ZooKeeper coordinates broker</text>
+<rect x="50" y="345" width="310" height="115" rx="16" fill="#e9f7f0" stroke="#087f5b" stroke-width="2"/>
+<text x="68" y="380.04" fill="#087f5b" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Polaris REST catalog</text>
+<text x="68" y="411.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Iceberg catalog / table metadata</text>
+<text x="68" y="439.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Service state in PostgreSQL</text>
+<rect x="440" y="345" width="310" height="115" rx="16" fill="#e9f7f0" stroke="#087f5b" stroke-width="2"/>
+<text x="458" y="380.04" fill="#087f5b" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">SeaweedFS S3</text>
+<text x="458" y="411.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Object files / warehouse</text>
+<text x="458" y="439.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Iceberg data and metadata files</text>
+<rect x="840" y="345" width="310" height="115" rx="16" fill="#e9f7f0" stroke="#087f5b" stroke-width="2"/>
+<text x="858" y="380.04" fill="#087f5b" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">HDFS</text>
+<text x="858" y="411.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">NameNode: file metadata</text>
+<text x="858" y="439.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">DataNode: file blocks</text>
+<polyline points="595,285 595,345" fill="none" stroke="#087f5b" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="595.0,345.0 589.9,335.2 600.1,335.2" fill="#087f5b"/>
+<polyline points="750,255 790,255 790,400 840,400" fill="none" stroke="#087f5b" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="840.0,400.0 830.2,405.1 830.2,394.9" fill="#087f5b"/>
+<polyline points="205,285 205,345" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="205.0,345.0 199.9,335.2 210.1,335.2" fill="#2563eb"/>
+<rect x="50" y="515" width="310" height="105" rx="16" fill="#e9f7f0" stroke="#087f5b" stroke-width="2"/>
+<text x="68" y="550.04" fill="#087f5b" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">PostgreSQL</text>
+<text x="68" y="581.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Polaris catalog service state</text>
+<text x="68" y="609.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Also available for SQL exercises</text>
+<polyline points="205,460 205,515" fill="none" stroke="#087f5b" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="205.0,515.0 199.9,505.2 210.1,505.2" fill="#087f5b"/>
+<rect x="440" y="515" width="310" height="105" rx="16" fill="#e9f7f0" stroke="#087f5b" stroke-width="2"/>
+<text x="458" y="550.04" fill="#087f5b" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">MySQL</text>
+<text x="458" y="581.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">SQL database exercises</text>
+<text x="458" y="609.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Hive metadata in later session</text>
+<rect x="840" y="515" width="310" height="105" rx="16" fill="#fff6e7" stroke="#ad6200" stroke-width="2"/>
+<text x="858" y="550.04" fill="#ad6200" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start">Separate compute paths</text>
+<text x="858" y="581.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">YARN jobs run on HDFS</text>
+<text x="858" y="609.94" fill="#172b4d" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">Hive uses metastore + MySQL</text>
+<rect x="50" y="659" width="1100" height="42" rx="10" fill="#eaf0f7" stroke="#eaf0f7" stroke-width="2"/>
+<text x="70" y="682.94" fill="#526581" font-family="Segoe UI, DejaVu Sans, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start">The initial deployment creates services. Notebook exercises create tables, files, topics and jobs.</text>
+</svg>

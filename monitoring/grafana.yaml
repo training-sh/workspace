@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-credentials
+  namespace: bigdata
+type: Opaque
+stringData:
+  username: team
+  password: team1234
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  namespace: bigdata
+data:
+  datasources.yaml: "apiVersion: 1\ndatasources:\n- access: proxy\n  editable: false\n\
+    \  isDefault: true\n  name: Prometheus\n  type: prometheus\n  uid: prometheus\n\
+    \  url: http://prometheus:9090\n- name: Loki\n  uid: loki\n  type: loki\n  access:\
+    \ proxy\n  url: http://loki:3100\n  editable: false\ndeleteDatasources:\n- name:\
+    \ Jaeger\n  orgId: 1\n"
+  dashboards.yaml: "apiVersion: 1\nproviders:\n- disableDeletion: false\n  folder:\
+    \ Training\n  name: training\n  options:\n    path: /etc/grafana/training-dashboards\n\
+    \  type: file\n  updateIntervalSeconds: 15\n"
+  performance.json: '{"uid": "training-performance", "title": "Training workload performance",
+    "schemaVersion": 39, "version": 1, "tags": ["training"], "refresh": "15s", "time":
+    {"from": "now-30m", "to": "now"}, "panels": [{"id": 1, "type": "timeseries", "title":
+    "CPU cores by pod", "gridPos": {"x": 0, "y": 0, "w": 12, "h": 9}, "datasource":
+    {"type": "prometheus", "uid": "prometheus"}, "targets": [{"expr": "sum by (pod)
+    (rate(container_cpu_usage_seconds_total{namespace=~\"bigdata|headlamp\",container!=\"\",container!=\"POD\"}[2m]))",
+    "refId": "A", "legendFormat": "{{pod}} {{job}}"}], "fieldConfig": {"defaults":
+    {"unit": "cores"}, "overrides": []}}, {"id": 2, "type": "timeseries", "title":
+    "Memory working set by pod", "gridPos": {"x": 12, "y": 0, "w": 12, "h": 9}, "datasource":
+    {"type": "prometheus", "uid": "prometheus"}, "targets": [{"expr": "sum by (pod)
+    (container_memory_working_set_bytes{namespace=~\"bigdata|headlamp\",container!=\"\",container!=\"POD\"})",
+    "refId": "A", "legendFormat": "{{pod}} {{job}}"}], "fieldConfig": {"defaults":
+    {"unit": "bytes"}, "overrides": []}}, {"id": 3, "type": "timeseries", "title":
+    "Scrape health", "gridPos": {"x": 0, "y": 9, "w": 12, "h": 9}, "datasource": {"type":
+    "prometheus", "uid": "prometheus"}, "targets": [{"expr": "up", "refId": "A", "legendFormat":
+    "{{pod}} {{job}}"}], "fieldConfig": {"defaults": {"unit": "short"}, "overrides":
+    []}}, {"id": 4, "type": "timeseries", "title": "Prometheus stored series", "gridPos":
+    {"x": 12, "y": 9, "w": 12, "h": 9}, "datasource": {"type": "prometheus", "uid":
+    "prometheus"}, "targets": [{"expr": "prometheus_tsdb_head_series", "refId": "A",
+    "legendFormat": "{{pod}} {{job}}"}], "fieldConfig": {"defaults": {"unit": "short"},
+    "overrides": []}}, {"id": 5, "type": "timeseries", "title": "YARN, Hive and Kafka
+    JVM heap", "gridPos": {"x": 0, "y": 18, "w": 24, "h": 9}, "datasource": {"type":
+    "prometheus", "uid": "prometheus"}, "targets": [{"expr": "sum by (job) (jvm_memory_used_bytes{area=\"heap\",job=~\".*-jmx\"})",
+    "refId": "A", "legendFormat": "{{job}}"}], "fieldConfig": {"defaults": {"unit":
+    "bytes"}, "overrides": []}}]}'
+  logs.json: '{"uid": "training-logs", "title": "Training centralized logs", "schemaVersion":
+    39, "version": 1, "tags": ["training", "logs"], "refresh": "10s", "time": {"from":
+    "now-15m", "to": "now"}, "panels": [{"id": 1, "type": "logs", "title": "All training
+    service logs ? filter further in Explore", "gridPos": {"x": 0, "y": 0, "w": 24,
+    "h": 12}, "datasource": {"type": "loki", "uid": "loki"}, "targets": [{"expr":
+    "{namespace=\"bigdata\"}", "refId": "A"}], "options": {"showLabels": true, "showTime":
+    true, "sortOrder": "Descending", "wrapLogMessage": true}}, {"id": 2, "type": "logs",
+    "title": "Errors and exceptions", "gridPos": {"x": 0, "y": 12, "w": 24, "h": 10},
+    "datasource": {"type": "loki", "uid": "loki"}, "targets": [{"expr": "{namespace=\"bigdata\"}
+    |~ \"(?i)error|exception|failed\"", "refId": "A"}], "options": {"showLabels":
+    true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true}}]}'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: bigdata
+spec:
+  selector:
+    app: grafana
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: grafana
+  namespace: bigdata
+spec:
+  serviceName: grafana
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        fsGroup: 472
+      containers:
+      - name: grafana
+        image: grafana/grafana:13.2.0@sha256:3fd54ae1214669f8355f065ec9f6445d5279a3d77095ab048ca045685272429b
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/grafana
+        - name: config
+          mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
+          subPath: datasources.yaml
+        - name: config
+          mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
+          subPath: dashboards.yaml
+        - name: config
+          mountPath: /etc/grafana/training-dashboards/performance.json
+          subPath: performance.json
+        - name: config
+          mountPath: /etc/grafana/training-dashboards/logs.json
+          subPath: logs.json
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: grafana-credentials
+              key: username
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: grafana-credentials
+              key: password
+        - name: GF_USERS_ALLOW_SIGN_UP
+          value: 'false'
+        - name: GF_METRICS_ENABLED
+          value: 'true'
+        readinessProbe:
+          httpGet: &id001
+            path: /api/health
+            port: 3000
+          periodSeconds: 10
+          timeoutSeconds: 5
+        startupProbe:
+          httpGet: *id001
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 60
+        livenessProbe:
+          httpGet: *id001
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+      volumes:
+      - name: config
+        configMap:
+          name: grafana-provisioning
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi

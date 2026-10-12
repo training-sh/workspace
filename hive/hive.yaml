@@ -1,0 +1,239 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hive-metastore
+  namespace: bigdata
+spec:
+  selector:
+    app: hive-metastore
+  ports:
+  - name: p9083
+    port: 9083
+    targetPort: 9083
+  - name: metrics
+    port: 9404
+    targetPort: 9404
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hive-metastore
+  namespace: bigdata
+spec:
+  serviceName: hive-metastore
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hive-metastore
+  template:
+    metadata:
+      labels:
+        app: hive-metastore
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: hive-metastore
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - hive-metastore
+        - --hiveconf
+        - hive.metastore.event.db.notification.api.auth=false
+        ports:
+        - containerPort: 9083
+        - name: metrics
+          containerPort: 9404
+        env:
+        - name: TRAINING_JMX_METRICS
+          value: 'true'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 1Gi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        - name: hive-logs
+          mountPath: /tmp/team
+        startupProbe:
+          tcpSocket: &id001
+            port: 9083
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          tcpSocket: *id001
+          periodSeconds: 10
+      - name: file-logs
+        image: dataeng-training:1.2.0
+        command:
+        - /opt/venv/bin/python
+        - /etc/training-telemetry/file-logs.py
+        env:
+        - name: LOG_PATTERNS
+          value: /logs/hive.log
+        resources:
+          requests:
+            cpu: 5m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: hive-logs
+          mountPath: /logs
+          readOnly: true
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        - name: log-positions
+          mountPath: /positions
+      volumes:
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      - name: hive-logs
+        emptyDir: {}
+      - name: log-positions
+        emptyDir: {}
+      enableServiceLinks: false
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hiveserver2
+  namespace: bigdata
+spec:
+  selector:
+    app: hiveserver2
+  ports:
+  - name: p10000
+    port: 10000
+    targetPort: 10000
+  - name: p10002
+    port: 10002
+    targetPort: 10002
+  - name: metrics
+    port: 9404
+    targetPort: 9404
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hiveserver2
+  namespace: bigdata
+spec:
+  serviceName: hiveserver2
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hiveserver2
+  template:
+    metadata:
+      labels:
+        app: hiveserver2
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: hiveserver2
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - hiveserver2
+        - --hiveconf
+        - mapreduce.job.user.classpath.first=true
+        ports:
+        - containerPort: 10000
+        - containerPort: 10002
+        - name: metrics
+          containerPort: 9404
+        env:
+        - name: TRAINING_JMX_METRICS
+          value: 'true'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            cpu: '2'
+            memory: 1536Mi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        - name: hive-logs
+          mountPath: /tmp/team
+        startupProbe:
+          tcpSocket: &id001
+            port: 10000
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          tcpSocket: *id001
+          periodSeconds: 10
+      - name: file-logs
+        image: dataeng-training:1.2.0
+        command:
+        - /opt/venv/bin/python
+        - /etc/training-telemetry/file-logs.py
+        env:
+        - name: LOG_PATTERNS
+          value: /logs/hive.log
+        resources:
+          requests:
+            cpu: 5m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: hive-logs
+          mountPath: /logs
+          readOnly: true
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        - name: log-positions
+          mountPath: /positions
+      volumes:
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      - name: hive-logs
+        emptyDir: {}
+      - name: log-positions
+        emptyDir: {}
+      enableServiceLinks: false
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi

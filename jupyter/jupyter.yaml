@@ -1,0 +1,164 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jupyter-credentials
+  namespace: bigdata
+type: Opaque
+stringData:
+  token: team1234
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jupyter
+  namespace: bigdata
+spec:
+  selector:
+    app: jupyter
+  ports:
+  - name: p8888
+    port: 8888
+    targetPort: 8888
+  - name: p4040
+    port: 4040
+    targetPort: 4040
+  - name: p7078
+    port: 7078
+    targetPort: 7078
+  - name: p7079
+    port: 7079
+    targetPort: 7079
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jupyter
+  namespace: bigdata
+spec:
+  serviceName: jupyter
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jupyter
+  template:
+    metadata:
+      labels:
+        app: jupyter
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: jupyter
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - jupyter
+        ports:
+        - containerPort: 8888
+        - containerPort: 4040
+        - containerPort: 7078
+        - containerPort: 7079
+        env:
+        - name: JUPYTER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: jupyter-credentials
+              key: token
+        - name: POLARIS_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: polaris-client-id
+        - name: POLARIS_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: polaris-client-secret
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: s3-access-key
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: s3-secret-key
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: kafka.bigdata.svc.cluster.local:9092
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: workspace
+          mountPath: /workspace
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        - name: spark-logs
+          mountPath: /tmp/spark-logs
+        startupProbe:
+          httpGet: &id001
+            path: /api
+            port: 8888
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 90
+        readinessProbe:
+          httpGet: *id001
+          periodSeconds: 10
+          timeoutSeconds: 5
+        command:
+        - /usr/bin/tini
+        - -g
+        - --
+        - /bin/bash
+        - /etc/training-telemetry/bootstrap.sh
+      - name: file-logs
+        image: dataeng-training:1.2.0
+        command:
+        - /opt/venv/bin/python
+        - /etc/training-telemetry/file-logs.py
+        env:
+        - name: LOG_PATTERNS
+          value: /logs/spark.log
+        resources:
+          requests:
+            cpu: 5m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: spark-logs
+          mountPath: /logs
+          readOnly: true
+        - name: telemetry
+          mountPath: /etc/training-telemetry
+          readOnly: true
+        - name: log-positions
+          mountPath: /positions
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: workspace
+        hostPath:
+          path: /course-workspace
+          type: Directory
+      - name: telemetry
+        configMap:
+          name: training-telemetry
+      - name: spark-logs
+        emptyDir: {}
+      - name: log-positions
+        emptyDir: {}
+      enableServiceLinks: false

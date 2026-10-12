@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hive-schema
+  namespace: bigdata
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+      - name: schema
+        image: dataeng-training:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - exec
+        - bash
+        - -ec
+        - 'count=$(python -c ''import mysql.connector; c=mysql.connector.connect(host="mysql",user="team",password="team1234",database="hive_metastore");
+          q=c.cursor(); q.execute("SHOW TABLES"); print(len(q.fetchall()))'')
+
+          if [[ "$count" == 0 ]]; then schematool -dbType mysql -initSchema; fi
+
+          schematool -dbType mysql -info
+
+          '
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+      enableServiceLinks: false

@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: marquez-config
+  namespace: bigdata
+data:
+  marquez.yml: |
+    server:
+      applicationConnectors:
+        - type: http
+          port: 5000
+      adminConnectors:
+        - type: http
+          port: 5001
+    db:
+      driverClass: org.postgresql.Driver
+      url: jdbc:postgresql://postgres:5432/marquez
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      maxSize: 5
+    migrateOnStartup: true
+    graphql:
+      enabled: true
+    search:
+      enabled: false
+    logging:
+      level: INFO
+      appenders:
+        - type: console
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: marquez
+  namespace: bigdata
+spec:
+  selector:
+    app: marquez
+  ports:
+    - name: api
+      port: 5000
+    - name: admin
+      port: 5001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marquez
+  namespace: bigdata
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: marquez
+  template:
+    metadata:
+      labels:
+        app: marquez
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: marquez
+          image: marquezproject/marquez:0.50.0@sha256:6d8a2c2cdb28a4f6d13f9ca6f8cc055d8312c4dee204ebeb848efdd76e6ab30e
+          env:
+            - name: MARQUEZ_CONFIG
+              value: /etc/marquez/marquez.yml
+            - name: JAVA_OPTS
+              value: -Xms128m -Xmx512m
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: lab-credentials
+                  key: database-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lab-credentials
+                  key: database-password
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: '1', memory: 1Gi}
+          ports:
+            - containerPort: 5000
+            - containerPort: 5001
+          volumeMounts:
+            - name: config
+              mountPath: /etc/marquez
+              readOnly: true
+          startupProbe:
+            httpGet: {path: /healthcheck, port: 5001}
+            periodSeconds: 10
+            failureThreshold: 90
+          readinessProbe:
+            httpGet: {path: /healthcheck, port: 5001}
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: marquez-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: marquez-web
+  namespace: bigdata
+spec:
+  selector:
+    app: marquez-web
+  ports:
+    - name: web
+      port: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marquez-web
+  namespace: bigdata
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: marquez-web
+  template:
+    metadata:
+      labels:
+        app: marquez-web
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: marquez-web
+          image: marquezproject/marquez-web:0.50.0@sha256:e8d53e10ab141cde1b121b01ff47776a58b407813fb6e10f490842d20c184346
+          env:
+            - {name: MARQUEZ_HOST, value: marquez}
+            - {name: MARQUEZ_PORT, value: '5000'}
+            - {name: WEB_PORT, value: '3000'}
+            - {name: REACT_APP_ADVANCED_SEARCH, value: 'false'}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: '1', memory: 512Mi}
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet: {path: /, port: 3000}
+            periodSeconds: 10
