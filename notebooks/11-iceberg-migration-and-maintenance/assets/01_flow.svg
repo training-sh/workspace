@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="600" viewBox="0 0 1440 600">
+<title>Hive sources and migration design</title><desc>Four stages of the hive sources and migration design exercise, read from left to right.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10" fill="#346b83"/></marker></defs>
+<rect width="1440" height="600" fill="#f4f7fa"/>
+<rect x="0" y="0" width="1440" height="12" fill="#136f63"/>
+<g font-family="Arial, sans-serif">
+<text x="64" y="76" font-size="19" letter-spacing="2" fill="#136f63">ICEBERG MIGRATION / LESSON 01</text>
+<text x="64" y="132" font-size="36" font-weight="bold" fill="#17324d">Hive sources and migration design</text>
+<rect x="64" y="218" width="280" height="190" rx="14" fill="white" stroke="#b7cbd6" stroke-width="2"/>
+<circle cx="102" cy="256" r="20" fill="#136f63"/><text x="102" y="263" text-anchor="middle" font-size="20" fill="white">1</text>
+<text x="86" y="316" font-size="23" fill="#17324d">Typed source rows</text>
+<path d="M352,313 H390" fill="none" stroke="#346b83" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="406" y="218" width="280" height="190" rx="14" fill="white" stroke="#b7cbd6" stroke-width="2"/>
+<circle cx="444" cy="256" r="20" fill="#136f63"/><text x="444" y="263" text-anchor="middle" font-size="20" fill="white">2</text>
+<text x="428" y="316" font-size="23" fill="#17324d">HDFS managed /</text>
+<text x="428" y="347" font-size="23" fill="#17324d">external</text>
+<path d="M694,313 H732" fill="none" stroke="#346b83" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="748" y="218" width="280" height="190" rx="14" fill="white" stroke="#b7cbd6" stroke-width="2"/>
+<circle cx="786" cy="256" r="20" fill="#136f63"/><text x="786" y="263" text-anchor="middle" font-size="20" fill="white">3</text>
+<text x="770" y="316" font-size="23" fill="#17324d">Hive partition</text>
+<text x="770" y="347" font-size="23" fill="#17324d">metadata</text>
+<path d="M1036,313 H1074" fill="none" stroke="#346b83" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="1090" y="218" width="280" height="190" rx="14" fill="white" stroke="#b7cbd6" stroke-width="2"/>
+<circle cx="1128" cy="256" r="20" fill="#136f63"/><text x="1128" y="263" text-anchor="middle" font-size="20" fill="white">4</text>
+<text x="1112" y="316" font-size="23" fill="#17324d">Design and</text>
+<text x="1112" y="347" font-size="23" fill="#17324d">reconcile</text>
+<path d="M64,467 H1370" stroke="#c8d6df"/>
+<text x="64" y="513" font-size="21" fill="#405e73">Stage data → inspect files and metadata → perform the operation → reconcile the result</text>
+<text x="64" y="550" font-size="18" fill="#405e73">Keep file ownership, writer boundaries and recovery requirements explicit at every stage.</text>
+</g></svg>

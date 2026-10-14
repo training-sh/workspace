@@ -1,0 +1,181 @@
+{
+  "started_utc": "2026-10-14T08:25:09.320176+00:00",
+  "execution": "Fresh Python kernels in Kubernetes; Spark jobs use configured master",
+  "kubernetes_serviceaccount_present": true,
+  "connection_environment_present": {
+    "SPARK_MASTER_URL": false,
+    "SPARK_DRIVER_HOST": false,
+    "HDFS_URI": false,
+    "HIVE_METASTORE_URI": false,
+    "POLARIS_URI": false,
+    "POLARIS_WAREHOUSE": false,
+    "POLARIS_BASE_URL": false,
+    "POLARIS_CATALOG": false,
+    "S3_ENDPOINT": false,
+    "POLARIS_REALM": false,
+    "AWS_DEFAULT_REGION": false,
+    "AWS_REGION": false
+  },
+  "sources": {
+    "01_hive_sources_and_migration_design.ipynb": "d0b5b9246a9da8022fc8752fa67e770f153d18f14c37799249f324e5e8c848d3",
+    "02_shallow_and_in_place_migration.ipynb": "d8faae7fc6fe4847f74d1477e4aac8877d720a5e7d413955fdabae741be73b39",
+    "03_snapshot_migration_and_validation.ipynb": "127e39fd4f900461501fe486f6d9ce56f631f3309ea1eb6b5587d2217f836f36",
+    "04_hybrid_migration_and_cutover.ipynb": "876177b5b63e4f4208fd7d7144c5f4ad26ebb6edef61e724837420bacbb1df68",
+    "05_late_arriving_data_and_replay.ipynb": "3d59ff1bafc810e989c157f64052b2cc64386b94e72976c74e6976fd6de5367d",
+    "06_hidden_partitions_and_partition_evolution.ipynb": "24cdf2d2a7fa0636b63f79af385eb7350144dbe2400bbbae599aac20b5af3e6b",
+    "07_branches_tags_and_table_maintenance.ipynb": "31f1a1204bd7818a5c2a4762d9cf393a9b015d0bac79d96695e4b0d37a97db77"
+  },
+  "validator_sha256": "fcb4decca8e1fde5beccdd0c0edc26f0815aaf877f30b0a4398080ea66d7ec73",
+  "runs": [
+    {
+      "pass": 1,
+      "notebook": "01_hive_sources_and_migration_design.ipynb",
+      "run_id": "p1_f5983fb8f5",
+      "status": "PASS",
+      "code_cells": 83,
+      "checks": 18,
+      "distributed_executor_verified": true,
+      "seconds": 102.8
+    },
+    {
+      "pass": 1,
+      "notebook": "02_shallow_and_in_place_migration.ipynb",
+      "run_id": "p1_6611707ed2",
+      "status": "PASS",
+      "code_cells": 52,
+      "checks": 9,
+      "distributed_executor_verified": true,
+      "seconds": 69.63
+    },
+    {
+      "pass": 1,
+      "notebook": "03_snapshot_migration_and_validation.ipynb",
+      "run_id": "p1_d2c9096604",
+      "status": "PASS",
+      "code_cells": 55,
+      "checks": 12,
+      "distributed_executor_verified": true,
+      "seconds": 69.71
+    },
+    {
+      "pass": 1,
+      "notebook": "04_hybrid_migration_and_cutover.ipynb",
+      "run_id": "p1_49b3764f53",
+      "status": "PASS",
+      "code_cells": 54,
+      "checks": 12,
+      "distributed_executor_verified": true,
+      "seconds": 71.03
+    },
+    {
+      "pass": 1,
+      "notebook": "05_late_arriving_data_and_replay.ipynb",
+      "run_id": "p1_c3449eb4da",
+      "status": "PASS",
+      "code_cells": 52,
+      "checks": 10,
+      "distributed_executor_verified": true,
+      "seconds": 70.01
+    },
+    {
+      "pass": 1,
+      "notebook": "06_hidden_partitions_and_partition_evolution.ipynb",
+      "run_id": "p1_f4ac0a189a",
+      "status": "PASS",
+      "code_cells": 51,
+      "checks": 9,
+      "distributed_executor_verified": true,
+      "seconds": 64.69
+    },
+    {
+      "pass": 1,
+      "notebook": "07_branches_tags_and_table_maintenance.ipynb",
+      "run_id": "p1_7b79ca92ae",
+      "status": "PASS",
+      "code_cells": 104,
+      "checks": 22,
+      "distributed_executor_verified": true,
+      "seconds": 101.85
+    },
+    {
+      "pass": 2,
+      "notebook": "01_hive_sources_and_migration_design.ipynb",
+      "run_id": "p2_b766f77608",
+      "status": "PASS",
+      "code_cells": 83,
+      "checks": 18,
+      "distributed_executor_verified": true,
+      "seconds": 88.71
+    },
+    {
+      "pass": 2,
+      "notebook": "02_shallow_and_in_place_migration.ipynb",
+      "run_id": "p2_d9e32f1899",
+      "status": "PASS",
+      "code_cells": 52,
+      "checks": 9,
+      "distributed_executor_verified": true,
+      "seconds": 61.82
+    },
+    {
+      "pass": 2,
+      "notebook": "03_snapshot_migration_and_validation.ipynb",
+      "run_id": "p2_045a8c9cbb",
+      "status": "PASS",
+      "code_cells": 55,
+      "checks": 12,
+      "distributed_executor_verified": true,
+      "seconds": 71.26
+    },
+    {
+      "pass": 2,
+      "notebook": "04_hybrid_migration_and_cutover.ipynb",
+      "run_id": "p2_3ee882e1a6",
+      "status": "PASS",
+      "code_cells": 54,
+      "checks": 12,
+      "distributed_executor_verified": true,
+      "seconds": 74.23
+    },
+    {
+      "pass": 2,
+      "notebook": "05_late_arriving_data_and_replay.ipynb",
+      "run_id": "p2_6ed23b5817",
+      "status": "PASS",
+      "code_cells": 52,
+      "checks": 10,
+      "distributed_executor_verified": true,
+      "seconds": 70.08
+    },
+    {
+      "pass": 2,
+      "notebook": "06_hidden_partitions_and_partition_evolution.ipynb",
+      "run_id": "p2_5a3e41f3bf",
+      "status": "PASS",
+      "code_cells": 51,
+      "checks": 9,
+      "distributed_executor_verified": true,
+      "seconds": 62.19
+    },
+    {
+      "pass": 2,
+      "notebook": "07_branches_tags_and_table_maintenance.ipynb",
+      "run_id": "p2_7f1fc63a6c",
+      "status": "PASS",
+      "code_cells": 104,
+      "checks": 22,
+      "distributed_executor_verified": true,
+      "seconds": 102.21
+    }
+  ],
+  "portable_sources_sha256": {
+    "01_hive_sources_and_migration_design.ipynb": "d0b5b9246a9da8022fc8752fa67e770f153d18f14c37799249f324e5e8c848d3",
+    "02_shallow_and_in_place_migration.ipynb": "d8faae7fc6fe4847f74d1477e4aac8877d720a5e7d413955fdabae741be73b39",
+    "03_snapshot_migration_and_validation.ipynb": "127e39fd4f900461501fe486f6d9ce56f631f3309ea1eb6b5587d2217f836f36",
+    "04_hybrid_migration_and_cutover.ipynb": "876177b5b63e4f4208fd7d7144c5f4ad26ebb6edef61e724837420bacbb1df68",
+    "05_late_arriving_data_and_replay.ipynb": "3d59ff1bafc810e989c157f64052b2cc64386b94e72976c74e6976fd6de5367d",
+    "06_hidden_partitions_and_partition_evolution.ipynb": "24cdf2d2a7fa0636b63f79af385eb7350144dbe2400bbbae599aac20b5af3e6b",
+    "07_branches_tags_and_table_maintenance.ipynb": "31f1a1204bd7818a5c2a4762d9cf393a9b015d0bac79d96695e4b0d37a97db77"
+  },
+  "portable_hash_note": "Portable source hashes normalize text line endings to LF for Git checkouts; sources contains hashes of the exact bytes executed."
+}

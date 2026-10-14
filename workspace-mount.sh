@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
-mkdir -p .state
+mkdir -p .state user_notebooks
 # This marker distinguishes the real host share from an empty node directory.
 [[ -f .training-workspace ]] || printf 'dataeng-training-workspace\n' > .training-workspace
 # Carry 9p over the node's existing SSH endpoint. Both listeners bind loopback;

@@ -1,0 +1,72 @@
+[
+  {
+    "n": 1,
+    "title": "Hive sources and migration design",
+    "labels": [
+      "Typed source rows",
+      "HDFS managed / external",
+      "Hive partition metadata",
+      "Design and reconcile"
+    ]
+  },
+  {
+    "n": 2,
+    "title": "Shallow and in-place migration",
+    "labels": [
+      "Invoices in HDFS",
+      "Import or migrate",
+      "Iceberg metadata",
+      "Same original files"
+    ]
+  },
+  {
+    "n": 3,
+    "title": "Snapshot migration and validation",
+    "labels": [
+      "Read-only Hive source",
+      "Snapshot test table",
+      "Validate and repair types",
+      "Accept or reject cutover"
+    ]
+  },
+  {
+    "n": 4,
+    "title": "Hybrid migration and cutover",
+    "labels": [
+      "Hive date partitions",
+      "Historical Iceberg data",
+      "Bounded UNION ALL view",
+      "Freeze / validate / cut over"
+    ]
+  },
+  {
+    "n": 5,
+    "title": "Late-arriving data and replay",
+    "labels": [
+      "HDFS staged batches",
+      "Validate / deduplicate",
+      "MERGE by key and version",
+      "Replay and reconcile"
+    ]
+  },
+  {
+    "n": 6,
+    "title": "Hidden partitions and partition evolution",
+    "labels": [
+      "Hive order_date folders",
+      "days(order_ts)",
+      "Business-column predicates",
+      "Evolve to months + buckets"
+    ]
+  },
+  {
+    "n": 7,
+    "title": "Branches, tags and table maintenance",
+    "labels": [
+      "Owned Iceberg files",
+      "Branch validate / promote",
+      "Compact and retain history",
+      "Expire / inspect / clean"
+    ]
+  }
+]

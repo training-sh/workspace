@@ -136,6 +136,8 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - nodemanager
+        # kubectl port-forward connects to loopback inside the Pod.
+        - -Dyarn.nodemanager.bind-host=0.0.0.0
         ports:
         - containerPort: 8042
         - name: metrics

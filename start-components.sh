@@ -22,6 +22,14 @@ start_hdfs() {
 kubectl apply -f monitoring/telemetry-config.yaml
 for component in "$@"; do
   case "$component" in
+    headlamp)
+      minikube -p bigdata addons enable headlamp
+      kubectl apply -f platform/headlamp-access.yaml
+      kubectl -n headlamp rollout status deployment/headlamp --timeout=300s ;;
+    polaris-console)
+      minikube -p bigdata image ls | grep -q 'polaris-console:db1f8ea' || bash polaris/console/build-console.sh
+      kubectl apply -f polaris/console.yaml
+      kubectl -n bigdata rollout status deployment/polaris-console --timeout=300s ;;
     jupyter)
       if ! minikube -p bigdata ssh -- 'test -f /course-workspace/.training-workspace' < /dev/null >/dev/null 2>&1; then
         mkdir -p .state
@@ -81,7 +89,7 @@ for component in "$@"; do
       kubectl -n bigdata rollout status deployment/marquez --timeout=900s
       kubectl -n bigdata rollout status deployment/marquez-web --timeout=900s ;;
     kafka) kubectl apply -f kafka/zookeeper.yaml; wait_app zookeeper; kubectl apply -f kafka/kafka.yaml; wait_app kafka ;;
-    *) echo "Choose: jupyter airflow hdfs yarn hive trino spark kafka lineage"; exit 2 ;;
+    *) echo "Choose: jupyter airflow hdfs yarn hive trino spark kafka lineage headlamp polaris-console"; exit 2 ;;
   esac
 done
 kubectl -n bigdata get pods

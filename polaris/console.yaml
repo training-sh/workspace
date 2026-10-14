@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polaris-console
+  namespace: bigdata
+data:
+  config.js: |
+    window.APP_CONFIG = {
+      VITE_POLARIS_API_URL: window.location.origin,
+      VITE_POLARIS_REALM: 'POLARIS',
+      VITE_POLARIS_PRINCIPAL_SCOPE: 'PRINCIPAL_ROLE:ALL',
+      VITE_OAUTH_TOKEN_URL: window.location.origin + '/api/catalog/v1/oauth/tokens',
+      VITE_POLARIS_REALM_HEADER_NAME: 'Polaris-Realm'
+    };
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+      root /usr/share/nginx/html;
+      index index.html;
+      location / { try_files $uri $uri/ /index.html; }
+      location = /config.js { add_header Cache-Control "no-store"; }
+      location /api/ {
+        proxy_pass http://polaris:8181;
+        proxy_set_header Host $proxy_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      }
+      location = /health { return 200 "healthy\n"; }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: polaris-console
+  namespace: bigdata
+spec:
+  selector:
+    app: polaris-console
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: polaris-console
+  namespace: bigdata
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: polaris-console
+  template:
+    metadata:
+      labels:
+        app: polaris-console
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: console
+        image: polaris-console:db1f8ea
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 192Mi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+        volumeMounts:
+        - name: config
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+        - name: config
+          mountPath: /usr/share/nginx/html/config.js
+          subPath: config.js
+      volumes:
+      - name: config
+        configMap:
+          name: polaris-console

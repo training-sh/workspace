@@ -2,6 +2,11 @@
 
 Repository: [training-sh/workspace](https://github.com/training-sh/workspace).
 
+For a single Python command to expose deployed browser portals on the host, see
+[UI access](UI_ACCESS.md). It includes Headlamp Pod management, Polaris Console,
+the host port map and workshop login details. The individual forwards below
+remain available as alternatives.
+
 Place this directory at `~/workspace` or another directory you own. `WORKSPACE_HOME` defaults to `$HOME/workspace`; notebook 00 saves your chosen path and `~/.local/bin` in `.bashrc`. One-time Docker installation and group access are handled there; routine Docker, Minikube and kubectl commands run without sudo. Run shell commands on Ubuntu, using the same ordinary login account for Docker, Minikube and kubectl.
 
 Begin with the illustrated [Kubernetes introduction notebook](00-kubernetes-introduction/00-kubernetes-introduction.ipynb): Docker/Compose comparisons, architecture, Pods, networking, storage, Minikube and cloud options.
@@ -28,7 +33,7 @@ First read [Our cluster architecture](00-setup/00-cluster-architecture.ipynb) fo
 
 For an initial replay that defers YARN and Hive, complete notebooks 00-09, then 12-13. Notebook 08 reuses the existing validated image and imports it into the new node. Optional UI forwards run in a second terminal; continue setup in your original terminal. Skip the optional destructive-reset block when moving to the next notebook.
 
-Notebook 01 also enables Headlamp and metrics-server. In the Guacamole Ubuntu browser, use the URL printed by `minikube -p bigdata service headlamp -n headlamp --url`; generate the viewer login token using the command in that notebook. No laptop tunnel is needed on the same Ubuntu host.
+Notebook 01 also enables Headlamp and metrics-server. In the Guacamole Ubuntu browser, use the URL printed by `minikube -p bigdata service headlamp -n headlamp --url`; generate the workspace login token using the command in that notebook. No laptop tunnel is needed on the same Ubuntu host.
 
 Monitoring starts first and captures the first service startup logs. The storage sequence deploys S3, PostgreSQL, Polaris and MySQL one at a time. It creates `test-bucket/test-object.txt`, `test_catalog.test_namespace.test_table` (Iceberg metadata), and PostgreSQL/MySQL `test_database.test_table` rows. The later exercise catalog `training` also points to `s3://warehouse/iceberg`.
 
@@ -44,6 +49,7 @@ Use the repository URL supplied for this workspace. The repository root must con
 REPOSITORY_URL='https://github.com/training-sh/workspace.git'
 git clone "$REPOSITORY_URL" "$HOME/workspace"
 cd "$HOME/workspace"
+mkdir -p user_notebooks
 ```
 
 For another checkout location, clone into that directory and set `WORKSPACE_HOME` to its absolute path in notebook 00. That notebook persists the choice in `.bashrc`; all later sessions use it. The Git repository contains source files, not the built Docker image or Kubernetes volumes. On a new machine, notebook 08 builds the image if absent; on the prepared machine it reuses the existing `dataeng-training:1.2.0` image. A new Minikube node still needs the image imported into its containerd store.
@@ -60,6 +66,49 @@ There are **six stages**, using **12 setup notebooks** for the current walkthrou
 | 6. Add Spark and Kafka | [12](00-setup/12-spark.ipynb), [13](00-setup/13-kafka.ipynb) | Spark master/worker, then ZooKeeper and Kafka |
 
 Leave [10 YARN](00-setup/10-yarn.ipynb) and [11 Hive](00-setup/11-hive.ipynb) for separate sessions. Their longer tests are deferred. Airflow, Trino and lineage have manifests but their lesson walkthroughs are not part of this validated initial sequence. Skip optional destructive resets between notebooks. First-time initialization and sample tests belong in the notebooks; daily startup does not repeat them.
+
+## Personal notebooks and daily updates
+
+Keep your own notebooks, copies of exercises and supporting files in
+`user_notebooks/` at the workspace root. This folder is local and excluded from
+GitHub. It appears in JupyterLab as `/workspace/user_notebooks/`.
+
+Workbench setup and the updater create this folder automatically. You can also
+create it immediately after cloning:
+
+```bash
+cd "${WORKSPACE_HOME:-$HOME/workspace}"
+mkdir -p user_notebooks
+```
+
+Copy a course notebook into this folder before making changes you want to keep.
+Files elsewhere in the course checkout can be replaced by the next update.
+Because personal notebooks are not uploaded to GitHub, keep a separate copy of
+this folder if you need a backup.
+
+To download the latest course material, save your work and close open course
+notebook tabs, then run:
+
+```bash
+cd "${WORKSPACE_HOME:-$HOME/workspace}"
+python3 update-workspace.py
+```
+
+No Git commands or merge-conflict handling are needed. The updater downloads
+published `main`, saves a local Git backup of existing course changes, and
+replaces course files with the published versions. New untracked files outside
+ignored folders are also saved in that backup and removed from the checkout.
+**Everything inside `user_notebooks/` stays in place.** The updater stops if the
+published repository tries to put course files in that reserved folder.
+
+Reopen course notebooks after the update. The command updates files only; it
+does not restart services, apply manifests, rebuild images or delete Kubernetes
+data. Follow the lesson's startup instructions when configuration changes are
+published. Restart `expose-uis.py` if its port mappings changed.
+
+Local Git backups are available for recovery with help from the instructor:
+`git branch --list 'backup/*'` and `git stash list`. Normal daily use only needs
+`python3 update-workspace.py`; do not apply an old stash as part of an update.
 
 ## Start daily
 
@@ -212,7 +261,7 @@ bash monitoring-access.sh
 
 Do not run two forwards for the same local port. Some links inside Hadoop/Spark pages point to cluster-only addresses; use the direct local links in the table to open other components. The table adds forwarding instructions for all manifest HTTP pages; these additional pages have not all been tested interactively in a browser.
 
-Headlamp uses the viewer token command in notebook 01. Jupyter uses token `team1234`; Grafana and Airflow use the example login `team / team1234`. SeaweedFS admin credentials are the example S3 values in `platform/lab-secret.yaml`. For optional Adminer:
+Headlamp uses the workspace token command in notebook 01. Jupyter uses token `team1234`; Grafana and Airflow use the example login `team / team1234`. SeaweedFS admin credentials are the example S3 values in `platform/lab-secret.yaml`. For optional Adminer:
 
 ```bash
 kubectl --context=bigdata apply -f postgresql/adminer.yaml
@@ -220,7 +269,7 @@ kubectl --context=bigdata -n bigdata rollout status deployment/adminer --timeout
 kubectl --context=bigdata -n bigdata port-forward --address=127.0.0.1 service/adminer 8086:8080
 ```
 
-Choose PostgreSQL/server `postgres` or MySQL/server `mysql` in Adminer and use the database credentials from the lab Secret. PostgreSQL/MySQL have no bundled native web UI. Kafka/ZooKeeper and Hive metastore also have no web UI in these manifests. Polaris exposes REST at `http://127.0.0.1:18181` and readiness at [Polaris health](http://127.0.0.1:18182/q/health/ready), not a catalog browser; use notebook 05's forward. S3 at `http://127.0.0.1:19001` is an authenticated API, not a browser UI. Loki is queried through Grafana, not through a standalone web UI.
+Choose PostgreSQL/server `postgres` or MySQL/server `mysql` in Adminer and use the database credentials from the lab Secret. PostgreSQL/MySQL have no bundled native web UI. Kafka/ZooKeeper and Hive metastore also have no web UI in these manifests. Polaris exposes REST at `http://127.0.0.1:18181` and readiness at [Polaris health](http://127.0.0.1:18182/q/health/ready), the server itself has no catalog browser; use notebook 05's API forward or the separate Polaris Console at host port 18180 through expose-uis.py. S3 at `http://127.0.0.1:19001` is an authenticated API, not a browser UI. Loki is queried through Grafana, not through a standalone web UI.
 
 ## Check logs
 

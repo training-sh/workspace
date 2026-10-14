@@ -26,3 +26,6 @@ pyspark/streaming/state.json
 # Validation-only DAG installed on demand
 airflow/dags/training_smoke.py
 validations/results/
+
+# Personal notebooks stay local, outside the published course material.
+/user_notebooks/

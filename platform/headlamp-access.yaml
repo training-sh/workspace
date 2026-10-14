@@ -17,6 +17,37 @@ subjects:
   name: workspace-ui
   namespace: headlamp
 ---
+# Pod operations are limited to the workshop namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workspace-ui-pods
+  namespace: bigdata
+rules:
+- apiGroups: ['']
+  resources: [pods]
+  verbs: [get, list, watch, create, update, patch, delete]
+- apiGroups: ['']
+  resources: [pods/log]
+  verbs: [get]
+- apiGroups: ['']
+  resources: [pods/exec, pods/attach, pods/portforward]
+  verbs: [get, create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workspace-ui-pods
+  namespace: bigdata
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: workspace-ui-pods
+subjects:
+- kind: ServiceAccount
+  name: workspace-ui
+  namespace: headlamp
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
