@@ -44,6 +44,8 @@ data:
 
     *.sink.servlet.path=/metrics/json
 
+    *.source.jvm.class=org.apache.spark.metrics.source.JvmSource
+
     '
   log4j2.properties: 'status = warn
 

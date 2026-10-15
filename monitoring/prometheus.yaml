@@ -73,7 +73,7 @@ data:
     \  static_configs:\n  - targets:\n    - hiveserver2:9404\n- job_name: kafka-jmx\n\
     \  metrics_path: /metrics\n  static_configs:\n  - targets:\n    - kafka:9404\n\
     - job_name: zookeeper-native\n  metrics_path: /metrics\n  static_configs:\n  -\
-    \ targets:\n    - zookeeper:7000\n"
+    \ targets:\n    - zookeeper:7000\n- job_name: kafka-exporter\n  metrics_path: /metrics\n  static_configs:\n  - targets:\n    - kafka-exporter:9308\n- job_name: trino\n  metrics_path: /metrics\n  basic_auth:\n    username: team\n  static_configs:\n  - targets:\n    - trino:8080\n  metric_relabel_configs:\n  - source_labels: [__name__]\n    regex: 'trino_execution_name_(QueryManager|SqlTaskManager)_.*|trino_memory_name_ClusterMemoryManager_.*|trino_metadata_name_DiscoveryNodeManager_.*|io_airlift_stats_name_GcMonitor_(Minor|Major)Gc_AllTime_count'\n    action: keep\n"
 ---
 apiVersion: v1
 kind: Service

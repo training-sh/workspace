@@ -88,7 +88,9 @@ for component in "$@"; do
       kubectl apply -f lineage/marquez.yaml
       kubectl -n bigdata rollout status deployment/marquez --timeout=900s
       kubectl -n bigdata rollout status deployment/marquez-web --timeout=900s ;;
-    kafka) kubectl apply -f kafka/zookeeper.yaml; wait_app zookeeper; kubectl apply -f kafka/kafka.yaml; wait_app kafka ;;
+    kafka) kubectl apply -f kafka/zookeeper.yaml; wait_app zookeeper; kubectl apply -f kafka/kafka.yaml; wait_app kafka
+      kubectl apply -f monitoring/kafka-exporter.yaml
+      kubectl -n bigdata rollout status deployment/kafka-exporter --timeout=300s ;;
     *) echo "Choose: jupyter airflow hdfs yarn hive trino spark kafka lineage headlamp polaris-console"; exit 2 ;;
   esac
 done

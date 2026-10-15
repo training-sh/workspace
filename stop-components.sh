@@ -9,7 +9,11 @@ for component in "$@"; do
     yarn) apps='resourcemanager nodemanager historyserver' ;;
     hive) apps='hiveserver2 hive-metastore' ;;
     spark) apps='spark-worker spark-master' ;;
-    kafka) apps='kafka zookeeper' ;;
+    kafka)
+      if kubectl -n bigdata get deployment/kafka-exporter >/dev/null 2>&1; then
+        kubectl -n bigdata scale deployment/kafka-exporter --replicas=0
+      fi
+      apps='kafka zookeeper' ;;
     *) echo 'Choose: jupyter airflow hdfs yarn hive trino spark kafka lineage'; exit 2 ;;
   esac
   for app in $apps; do

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-providers
+  namespace: bigdata
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+    - name: training
+      folder: Training
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 15
+      options:
+        path: /etc/grafana/training-dashboards
+    - name: components
+      folder: Tools
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 15
+      options:
+        path: /etc/grafana/component-dashboards

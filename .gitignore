@@ -29,3 +29,24 @@ validations/results/
 
 # Personal notebooks stay local, outside the published course material.
 /user_notebooks/
+
+# Local Grafana dashboard test utilities and generated evidence
+/monitoring/DASHBOARD-CATALOG.md
+/monitoring/DASHBOARD-VERIFICATION.md
+/monitoring/dashboard-audit*.json
+/monitoring/*-dashboard-browser.json
+/monitoring/*-dashboard-preview.png
+/monitoring/*-dashboard-validation.json
+/monitoring/*-metric-inventory.json
+/monitoring/kafka-log-stream-validation.json
+/monitoring/spark-jvm-idempotency.json
+/monitoring/trino-scrape-validation.json
+/monitoring/yarn-pi-validation.txt
+/validations/audit-dashboard-templates.py
+/validations/check-kafka-dashboard.py
+/validations/check-spark-dashboard.py
+/validations/check-trino-dashboard.py
+/validations/check-hdfs-dashboard.py
+/validations/check-yarn-dashboard.py
+/validations/preview-grafana-dashboard.py
+/validations/preview-kafka-dashboard.py

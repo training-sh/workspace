@@ -101,16 +101,19 @@ spec:
             memory: 128Mi
           limits:
             cpu: '1'
-            memory: 512Mi
+            memory: 768Mi
         volumeMounts:
         - name: data
           mountPath: /var/lib/grafana
         - name: config
           mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
           subPath: datasources.yaml
-        - name: config
-          mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
-          subPath: dashboards.yaml
+        - name: dashboard-providers
+          mountPath: /etc/grafana/provisioning/dashboards
+          readOnly: true
+        - name: component-dashboards
+          mountPath: /etc/grafana/component-dashboards
+          readOnly: true
         - name: config
           mountPath: /etc/grafana/training-dashboards/performance.json
           subPath: performance.json
@@ -132,6 +135,8 @@ spec:
           value: 'false'
         - name: GF_METRICS_ENABLED
           value: 'true'
+        - name: GOMEMLIMIT
+          value: 512MiB
         readinessProbe:
           httpGet: &id001
             path: /api/health
@@ -149,6 +154,22 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 6
       volumes:
+      - name: dashboard-providers
+        configMap:
+          name: grafana-dashboard-providers
+      - name: component-dashboards
+        projected:
+          sources:
+          - configMap:
+              name: grafana-dashboard-kafka
+          - configMap:
+              name: grafana-dashboard-spark
+          - configMap:
+              name: grafana-dashboard-trino
+          - configMap:
+              name: grafana-dashboard-hdfs
+          - configMap:
+              name: grafana-dashboard-yarn
       - name: config
         configMap:
           name: grafana-provisioning
