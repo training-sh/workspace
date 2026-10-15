@@ -14,7 +14,10 @@ python3 expose-uis.py
 port mappings without requiring kubectl or a running cluster.
 `--list` inspects Services and ready endpoints without opening ports.
 Running without these options starts forwards and prints each URL after kubectl opens its listener.
-Keep it running. Ctrl+C stops its own forwards. Failed forwards retry every five
+Keep it running. Press Esc or Q to stop its own forwards (no Enter needed).
+Ctrl+C is ignored so accidental copy shortcuts leave forwards running.
+Without an interactive terminal, use `--seconds` or send SIGTERM to stop.
+Failed forwards retry every five
 seconds. Missing Services, unready Pods and occupied host ports are reported;
 the script does not deploy workloads or stop existing listeners. Rerun it after
 deploying additional components. Logs are in `.state/ui-port-forwards/`.

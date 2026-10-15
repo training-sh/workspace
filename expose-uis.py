@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Expose deployed workshop UIs on the Kubernetes host; Ctrl+C closes forwards."""
+"""Expose deployed workshop UIs on the Kubernetes host; press Esc or Q to exit."""
 import argparse
+from contextlib import contextmanager
 import datetime
 import json
+import os
 from pathlib import Path
 import shutil
 import signal
@@ -48,6 +50,45 @@ def error_hint(exc):
                 type(exc).__name__)[:300]
 
 
+@contextmanager
+def exit_keys():
+    """Read single exit keys without Enter, restoring terminal settings on exit."""
+    if not sys.stdin.isatty():
+        yield lambda: False
+    elif sys.platform == 'win32':
+        import msvcrt
+
+        def pressed():
+            while msvcrt.kbhit():
+                key = msvcrt.getwch()
+                if key in ('\x00', '\xe0'):
+                    msvcrt.getwch()  # Consume the second byte of a special key.
+                elif key in ('q', 'Q', '\x1b'):
+                    return True
+            return False
+
+        yield pressed
+    else:
+        import select
+        import termios
+        import tty
+
+        fd = sys.stdin.fileno()
+        original = termios.tcgetattr(fd)
+        try:
+            tty.setcbreak(fd)
+
+            def pressed():
+                if select.select([fd], [], [], 0)[0]:
+                    keys = os.read(fd, 1024)
+                    return keys == b'\x1b' or b'q' in keys or b'Q' in keys
+                return False
+
+            yield pressed
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, original)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      epilog='Use --components to list all supported component names without Kubernetes.')
@@ -71,6 +112,7 @@ def main():
     except OSError:
         parser.error('--bind must be an IPv4 address')
     base = ['kubectl', '--context', args.context]
+    previous_sigint = signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     def get(kind, ns):
         result = subprocess.run(base + ['-n', ns, 'get', kind, '-o', 'json'],
@@ -100,8 +142,8 @@ def main():
         nonlocal stopping
         stopping = True
 
-    signal.signal(signal.SIGINT, stop)
-    signal.signal(signal.SIGTERM, stop)
+    previous_sigterm = signal.signal(signal.SIGTERM, stop)
+    keyboard = None
     browser_host = '127.0.0.1' if args.bind == '0.0.0.0' else args.bind
     print(f'Context: {args.context}; bind: {args.bind}', flush=True)
     if args.bind == '0.0.0.0':
@@ -152,10 +194,18 @@ def main():
         if not forwards:
             print('No forwards could be started.')
             return 1
-        print(f'Logs: {logdir}\nCtrl+C closes only the forwards started by this script.', flush=True)
+        print(f'Logs: {logdir}', flush=True)
         print('Spark application UI needs an active Spark context; Seaweed volume / may return HTTP 400.', flush=True)
+        keyboard = exit_keys()
+        exit_pressed = keyboard.__enter__()
+        instructions = 'Press Esc or Q to exit. Ctrl+C is ignored; forwards stay running.'
+        if not sys.stdin.isatty():
+            instructions = 'No interactive terminal; use --seconds or SIGTERM to stop. Ctrl+C is ignored.'
+        print(instructions, flush=True)
         deadline = time.monotonic() + args.seconds if args.seconds is not None else float('inf')
         while not stopping and time.monotonic() < deadline:
+            if exit_pressed():
+                break
             for item in forwards:
                 proc = item['process']
                 if proc is not None and proc.poll() is not None:
@@ -166,7 +216,9 @@ def main():
                     try:
                         with item['logfile'].open('wb') as log:
                             item['process'] = subprocess.Popen(item['command'], stdout=log, stderr=log,
-                                                               stdin=subprocess.DEVNULL)
+                                                               stdin=subprocess.DEVNULL,
+                                                               **({'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP}
+                                                                  if sys.platform == 'win32' else {'start_new_session': True}))
                     except OSError as exc:
                         print(f'{item["name"]:20} FORWARD FAILED: {error_hint(exc)}; retrying in 5s', flush=True)
                         item.update(process=None, retry=time.monotonic() + 5)
@@ -175,10 +227,13 @@ def main():
                     content = item['logfile'].read_text(errors='replace')
                     if 'Forwarding from' in content and item['process'].poll() is None:
                         print(f'{item["name"]:20} FORWARDED {item["url"]}', flush=True)
+                        print(instructions, flush=True)
                         item['announced'] = True
             time.sleep(0.5)
         return 0
     finally:
+        if keyboard is not None:
+            keyboard.__exit__(None, None, None)
         for item in forwards:
             proc = item['process']
             if proc is not None and proc.poll() is None:
@@ -193,6 +248,8 @@ def main():
                     proc.wait()
         if forwards:
             print('UI forwards stopped.', flush=True)
+        signal.signal(signal.SIGINT, previous_sigint)
+        signal.signal(signal.SIGTERM, previous_sigterm)
 
 
 if __name__ == '__main__':
