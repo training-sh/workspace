@@ -18,6 +18,33 @@ xdg-open http://127.0.0.1:18888/
 google-chrome http://127.0.0.1:18888/
 ```
 
+### GNOME Terminal on XFCE: Open Link does nothing
+
+If `xdg-open` works but the terminal's **Open Link** does nothing, test the
+GNOME application handler in a second terminal:
+
+```bash
+gio open http://127.0.0.1:18888/
+```
+
+In our XFCE session, this tried to launch Snap Firefox and printed an error
+ending with `is not a snap cgroup for tag snap.firefox.firefox`. Setting Chrome
+as the HTTP and HTTPS handler fixed both `gio open` and terminal link clicks:
+
+```bash
+gio mime x-scheme-handler/http google-chrome.desktop
+gio mime x-scheme-handler/https google-chrome.desktop
+
+# Verify that the default application is google-chrome.desktop, then test.
+gio mime x-scheme-handler/http
+gio mime x-scheme-handler/https
+gio open http://127.0.0.1:18888/
+```
+
+Try **right-click → Open Link** again. If needed, test in a new terminal window
+while leaving the forwarding terminal running. Run these commands as your normal
+desktop user, without `sudo`.
+
 These commands assume an Ubuntu graphical desktop session. In an SSH session,
 the remote machine may have no graphical desktop available. Open the URL in your
 local browser after forwarding the remote port over SSH; `127.0.0.1` in the
@@ -25,6 +52,7 @@ browser always refers to the machine running that browser.
 
 References: [GNOME Terminal links](https://help.gnome.org/gnome-terminal/txt-links.html)
 and [Chrome default browser setup](https://chromium.googlesource.com/chromium/src/+/main/docs/linux/dev_build_as_default_browser.md).
+See also [GNOME application associations](https://help.gnome.org/system-admin-guide/mime-types-application.html).
 
 ## Start UI forwards
 
