@@ -40,14 +40,28 @@ PORTALS = [
 ]
 
 
+def error_hint(exc):
+    """Keep terminal status short; kubectl may emit several lines of diagnostics."""
+    if isinstance(exc, subprocess.TimeoutExpired):
+        return 'Kubernetes request timed out; check cluster connectivity and context'
+    return next((line.strip() for line in str(exc).splitlines() if line.strip()),
+                type(exc).__name__)[:300]
+
+
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--context', default='bigdata')
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     epilog='Use --components to list all supported component names without Kubernetes.')
+    parser.add_argument('--context', default='bigdata', help='Kubernetes context (default: bigdata)')
     parser.add_argument('--bind', default='127.0.0.1', help='Host IPv4 address to listen on')
-    parser.add_argument('--only', nargs='+', choices=[p[0] for p in PORTALS])
+    parser.add_argument('--only', nargs='+', choices=[p[0] for p in PORTALS], help='Forward only these components')
+    parser.add_argument('--components', action='store_true', help='List supported component names and ports, then exit')
     parser.add_argument('--list', action='store_true', help='Inspect without starting forwards')
     parser.add_argument('--seconds', type=int, help='Stop automatically after this many seconds')
     args = parser.parse_args()
+    if args.components:
+        for name, ns, service, remote, local, path in PORTALS:
+            print(f'{name:20} localhost:{local} -> {ns}/{service}:{remote}')
+        return 0
     if args.seconds is not None and args.seconds <= 0:
         parser.error('--seconds must be positive')
     if not shutil.which('kubectl'):
@@ -68,9 +82,13 @@ def main():
     selected = [p for p in PORTALS if not args.only or p[0] in args.only]
     # Namespace-scoped reads also work with accounts that cannot list cluster-wide.
     inventory = {}
+    inventory_errors = {}
     for ns in sorted({p[1] for p in selected}):
-        inventory[ns] = ({s['metadata']['name']: s for s in get('services', ns)},
-                         get('endpointslices.discovery.k8s.io', ns))
+        try:
+            inventory[ns] = ({s['metadata']['name']: s for s in get('services', ns)},
+                             get('endpointslices.discovery.k8s.io', ns))
+        except (RuntimeError, OSError, subprocess.TimeoutExpired, ValueError, KeyError) as exc:
+            inventory_errors[ns] = error_hint(exc)
     logdir = Path(__file__).resolve().parent / '.state' / 'ui-port-forwards'
     if not args.list:
         logdir = logdir / datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
@@ -90,10 +108,13 @@ def main():
         print('Listening on all host IPv4 interfaces; use the host address from another machine.')
     try:
         for name, ns, service, remote, local, path in selected:
+            if ns in inventory_errors:
+                print(f'{name:20} INSPECTION FAILED: {inventory_errors[ns]}', flush=True)
+                continue
             services, slices = inventory[ns]
             svc = services.get(service)
             if not svc:
-                print(f'{name:20} NOT DEPLOYED', flush=True)
+                print(f'{name:20} NOT DEPLOYED: service {ns}/{service} is missing', flush=True)
                 continue
             if remote not in [p['port'] for p in svc['spec'].get('ports', [])]:
                 print(f'{name:20} SERVICE PORT {remote} MISSING', flush=True)
@@ -104,7 +125,7 @@ def main():
                         for s in slices)
             url = f'http://{browser_host}:{local}{path}'
             if not ready:
-                print(f'{name:20} NO READY PODS', flush=True)
+                print(f'{name:20} NO READY PODS: check kubectl -n {ns} get pods (context {args.context})', flush=True)
                 continue
             if args.list:
                 print(f'{name:20} READY {url} -> {ns}/{service}:{remote} '
@@ -127,7 +148,7 @@ def main():
             forwards.append(item)
 
         if args.list:
-            return 0
+            return 1 if inventory_errors else 0
         if not forwards:
             print('No forwards could be started.')
             return 1
@@ -138,12 +159,17 @@ def main():
             for item in forwards:
                 proc = item['process']
                 if proc is not None and proc.poll() is not None:
-                    print(f'{item["name"]:20} FORWARD STOPPED; retrying in 5s (see log)', flush=True)
+                    detail = error_hint(item['logfile'].read_text(errors='replace'))
+                    print(f'{item["name"]:20} FORWARD STOPPED: {detail}; retrying in 5s (see log)', flush=True)
                     item.update(process=None, retry=time.monotonic() + 5, announced=False)
                 if item['process'] is None and time.monotonic() >= item['retry']:
-                    with item['logfile'].open('wb') as log:
-                        item['process'] = subprocess.Popen(item['command'], stdout=log, stderr=log,
-                                                           stdin=subprocess.DEVNULL)
+                    try:
+                        with item['logfile'].open('wb') as log:
+                            item['process'] = subprocess.Popen(item['command'], stdout=log, stderr=log,
+                                                               stdin=subprocess.DEVNULL)
+                    except OSError as exc:
+                        print(f'{item["name"]:20} FORWARD FAILED: {error_hint(exc)}; retrying in 5s', flush=True)
+                        item.update(process=None, retry=time.monotonic() + 5)
                 # The kubectl readiness message proves this process owns the listener.
                 if item['process'] is not None and not item['announced']:
                     content = item['logfile'].read_text(errors='replace')
@@ -172,6 +198,6 @@ def main():
 if __name__ == '__main__':
     try:
         sys.exit(main())
-    except (RuntimeError, subprocess.TimeoutExpired) as exc:
-        print(f'Cannot inspect Kubernetes: {exc}', file=sys.stderr)
+    except (RuntimeError, OSError, subprocess.TimeoutExpired, ValueError, KeyError) as exc:
+        print(f'UI forwarding failed: {error_hint(exc)}', file=sys.stderr)
         sys.exit(1)

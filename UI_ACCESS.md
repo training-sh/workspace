@@ -4,16 +4,22 @@ Run these commands on the Kubernetes host, in the workspace root. Python 3 and
 kubectl are required. The default context is `bigdata`.
 
 ```bash
+python3 expose-uis.py --help
+python3 expose-uis.py --components
 python3 expose-uis.py --list
 python3 expose-uis.py
 ```
 
-The first command inspects Services and ready endpoints without opening ports.
-The second starts forwards and prints each URL after kubectl opens its listener.
+`--help` shows all options; `--components` lists supported component names and
+port mappings without requiring kubectl or a running cluster.
+`--list` inspects Services and ready endpoints without opening ports.
+Running without these options starts forwards and prints each URL after kubectl opens its listener.
 Keep it running. Ctrl+C stops its own forwards. Failed forwards retry every five
 seconds. Missing Services, unready Pods and occupied host ports are reported;
 the script does not deploy workloads or stop existing listeners. Rerun it after
 deploying additional components. Logs are in `.state/ui-port-forwards/`.
+Inspection and forwarding failures show a short status and diagnostic clue instead
+of a Python traceback. A failed namespace inspection does not block other namespaces.
 
 The default bind address is `127.0.0.1`: use a browser on the host desktop.
 To listen on one specific host interface, use `--bind <host-IPv4-address>`.
