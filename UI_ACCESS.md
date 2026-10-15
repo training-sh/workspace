@@ -1,5 +1,33 @@
 # Workshop portals
 
+## Open forwarded links in Chrome on Ubuntu
+
+In GNOME Terminal, right-click a forwarded URL and choose **Open Link**.
+If the browser does not open, run the following in a second terminal as your
+normal desktop user, while keeping `expose-uis.py` running:
+
+```bash
+# Set Chrome as the default browser and verify the setting.
+xdg-settings set default-web-browser google-chrome.desktop
+xdg-settings get default-web-browser
+
+# Test a forwarded URL (Jupyter in this example).
+xdg-open http://127.0.0.1:18888/
+
+# If opening through the desktop fails, try Chrome directly and check its errors.
+google-chrome http://127.0.0.1:18888/
+```
+
+These commands assume an Ubuntu graphical desktop session. In an SSH session,
+the remote machine may have no graphical desktop available. Open the URL in your
+local browser after forwarding the remote port over SSH; `127.0.0.1` in the
+browser always refers to the machine running that browser.
+
+References: [GNOME Terminal links](https://help.gnome.org/gnome-terminal/txt-links.html)
+and [Chrome default browser setup](https://chromium.googlesource.com/chromium/src/+/main/docs/linux/dev_build_as_default_browser.md).
+
+## Start UI forwards
+
 Run these commands on the Kubernetes host, in the workspace root. Python 3 and
 kubectl are required. The default context is `bigdata`.
 
