@@ -119,9 +119,9 @@ def main():
             if remote not in [p['port'] for p in svc['spec'].get('ports', [])]:
                 print(f'{name:20} SERVICE PORT {remote} MISSING', flush=True)
                 continue
-            ready = any(s['metadata'].get('labels', {}).get('kubernetes.io/service-name') == service
-                        and any(e.get('conditions', {}).get('ready') is not False
-                                and e.get('addresses') for e in s.get('endpoints', []))
+            ready = any((s['metadata'].get('labels') or {}).get('kubernetes.io/service-name') == service
+                        and any((e.get('conditions') or {}).get('ready') is not False
+                                and e.get('addresses') for e in (s.get('endpoints') or []))
                         for s in slices)
             url = f'http://{browser_host}:{local}{path}'
             if not ready:
