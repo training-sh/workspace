@@ -201,7 +201,9 @@ def main():
         instructions = 'Press Esc or Q to exit. Ctrl+C is ignored; forwards stay running.'
         if not sys.stdin.isatty():
             instructions = 'No interactive terminal; use --seconds or SIGTERM to stop. Ctrl+C is ignored.'
-        print(instructions, flush=True)
+        pending_startup = {item['name'] for item in forwards}
+        instructions_printed = False
+        startup_deadline = time.monotonic() + 10
         deadline = time.monotonic() + args.seconds if args.seconds is not None else float('inf')
         while not stopping and time.monotonic() < deadline:
             if exit_pressed():
@@ -209,6 +211,7 @@ def main():
             for item in forwards:
                 proc = item['process']
                 if proc is not None and proc.poll() is not None:
+                    pending_startup.discard(item['name'])
                     detail = error_hint(item['logfile'].read_text(errors='replace'))
                     print(f'{item["name"]:20} FORWARD STOPPED: {detail}; retrying in 5s (see log)', flush=True)
                     item.update(process=None, retry=time.monotonic() + 5, announced=False)
@@ -220,6 +223,7 @@ def main():
                                                                **({'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP}
                                                                   if sys.platform == 'win32' else {'start_new_session': True}))
                     except OSError as exc:
+                        pending_startup.discard(item['name'])
                         print(f'{item["name"]:20} FORWARD FAILED: {error_hint(exc)}; retrying in 5s', flush=True)
                         item.update(process=None, retry=time.monotonic() + 5)
                 # The kubectl readiness message proves this process owns the listener.
@@ -227,8 +231,12 @@ def main():
                     content = item['logfile'].read_text(errors='replace')
                     if 'Forwarding from' in content and item['process'].poll() is None:
                         print(f'{item["name"]:20} FORWARDED {item["url"]}', flush=True)
-                        print(instructions, flush=True)
                         item['announced'] = True
+                        pending_startup.discard(item['name'])
+            # Print once after startup results; a slow forward must not hide exit keys.
+            if not instructions_printed and (not pending_startup or time.monotonic() >= startup_deadline):
+                print(instructions, flush=True)
+                instructions_printed = True
             time.sleep(0.5)
         return 0
     finally:
